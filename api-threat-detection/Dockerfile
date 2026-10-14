@@ -1,0 +1,9 @@
+# One image for both services: the System (gateway + agents + dashboard) and the demo shop API.
+FROM python:3.11-slim
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 NO_BROWSER=1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "run.py"]

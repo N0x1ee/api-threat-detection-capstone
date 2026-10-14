@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Threat Detection Console</title>
+<style>
+:root{--ink:#16233b;--ink2:#41506b;--paper:#eef1f5;--panel:#fff;--line:#d6dce5;
+--allow:#1f8a4c;--flag:#b87a00;--block:#b3261e;--ai:#6a3fa0;--blue:#2a6fb0;
+--allow-bg:#e3f4ea;--flag-bg:#fbf0d6;--block-bg:#fbe3e1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+code,.mono{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12.5px}
+header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header .who{font-size:12.5px;opacity:.85}
+header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
+header .sub{color:#aebbd3;font-size:12.5px}
+header .grow{flex:1}
+.live{display:flex;align-items:center;gap:8px;font-size:13px;color:#cfd8e8}
+.dot{width:9px;height:9px;border-radius:50%;background:#6b7a95}
+.dot.on{background:#46d17f;box-shadow:0 0 0 4px rgba(70,209,127,.2)}
+main{padding:18px 24px 40px;max-width:1500px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.kpi .v{font-size:26px;font-weight:650}
+.kpi .l{color:var(--ink2);font-size:12.5px}
+.grid{display:grid;gap:14px;margin-bottom:14px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g2{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0}
+h2{font-size:14px;margin:0 0 10px;font-weight:650}
+.note{color:var(--ink2);font-size:12.5px;margin:0 0 10px}
+.chart{position:relative;height:190px}
+button,select,input,textarea{font:inherit}
+button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:5px;padding:6px 11px;cursor:pointer}
+button:hover{background:#f3f6fa}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,tr:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:hover{background:#243759}
+button.danger{color:var(--block);border-color:#e3b6b2}
+button.good{color:var(--allow);border-color:#a9d6bb}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+label{display:block;font-size:12.5px;color:var(--ink2);margin:8px 0 3px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:5px;padding:6px 8px;background:#fff}
+textarea{min-height:54px;resize:vertical}
+.row2{display:grid;grid-template-columns:90px 1fr;gap:8px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:600;font-size:12.5px;color:var(--ink2);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid #edf0f4;vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#f6f8fb}
+tbody tr.sel{background:#eaf1fa}
+.req{max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.b-ALLOW{background:var(--allow-bg);color:var(--allow)}
+.b-FLAG{background:var(--flag-bg);color:var(--flag)}
+.b-BLOCK{background:var(--block-bg);color:var(--block)}
+.route{font-size:12px;color:var(--ink2)}
+.route.ai{color:var(--ai);font-weight:600}
+.scroll{max-height:380px;overflow:auto}
+.detail h3{margin:0 0 6px;font-size:15px}
+.detail ul{margin:6px 0 10px;padding-left:18px}
+.detail li{margin-bottom:4px}
+.kv{color:var(--ink2);font-size:12.5px}
+.payload{background:#f4f6f9;border:1px solid var(--line);border-radius:5px;padding:6px 8px;word-break:break-all;margin:6px 0 10px}
+.bar{height:8px;background:#e6eaf0;border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%}
+.health{display:flex;flex-wrap:wrap;gap:8px 18px}
+.health span{display:flex;align-items:center;gap:7px;font-size:13px}
+.health .dot{background:var(--allow)}
+.health .dot.bad{background:var(--block)}
+.empty{color:var(--ink2);padding:14px 4px}
+.q{border:1px solid var(--line);border-radius:5px;padding:8px 10px;margin-bottom:8px}
+.q .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.small{font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>API Threat Detection Console</h1>
+    <div class="sub">3 specialised agents, confidence-weighted voting, plain-English explanations</div>
+  </div>
+  <div class="grow"></div>
+  <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">Idle</span></div>
+  <button id="btnReset" title="Clear all decisions and reset agent weights (administrators only)" style="display:none">Reset demo</button>
+  <span id="who" class="who"></span>
+  <button id="btnLogout" title="Sign out">Sign out</button>
+</header>
+
+<main>
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="kTotal">0</div><div class="l">Requests processed</div></div>
+    <div class="kpi"><div class="v" id="kFast">0%</div><div class="l">Cleared by fast filter (no AI)</div></div>
+    <div class="kpi"><div class="v" id="kAi">0 ms</div><div class="l">Average AI analysis time <span id="kP95"></span></div></div>
+    <div class="kpi"><div class="v" id="kBlock" style="color:var(--block)">0</div><div class="l">Blocked</div></div>
+    <div class="kpi"><div class="v" id="kFlag" style="color:var(--flag)">0</div><div class="l">Flagged, waiting for review</div></div>
+  </div>
+
+  <div class="grid g3">
+    <section><h2>Decisions</h2><div class="chart"><canvas id="cVerdict"></canvas></div></section>
+    <section><h2>Attack types found</h2><div class="chart"><canvas id="cTypes"></canvas></div></section>
+    <section><h2>Response time per request (ms)</h2><div class="chart"><canvas id="cLat"></canvas></div></section>
+  </div>
+
+  <div class="grid g3">
+    <section>
+      <h2>Agent weights (adaptive)</h2>
+      <p class="note" id="wNote">Weights move toward the agents that have been right recently.</p>
+      <div class="chart" style="height:150px"><canvas id="cWeights"></canvas></div>
+      <table class="small" style="margin-top:8px"><thead><tr><th>Agent</th><th>Recent accuracy</th><th>Weight</th></tr></thead><tbody id="wBody"></tbody></table>
+    </section>
+    <section>
+      <h2>Generate traffic</h2>
+      <p class="note">Each click sends 15 user sessions through the full pipeline.</p>
+      <div class="btns">
+        <button class="primary" data-sim="mixed" data-novel="1">Mixed traffic (with zero-day)</button>
+        <button data-sim="normal">Normal users</button>
+        <button data-sim="sqli">SQL injection</button>
+        <button data-sim="xss">XSS</button>
+        <button data-sim="cmdi">Command injection</button>
+        <button data-sim="traversal">Path traversal</button>
+        <button data-sim="recon">Scanner / bot</button>
+      </div>
+      <p class="note" style="margin-top:10px"><label style="display:inline;margin:0"><input type="checkbox" id="novel" style="width:auto"> Use obfuscated variants the agents never saw in training</label></p>
+      <div class="btns"><button id="btnStop">Stop</button></div>
+      <p class="note" style="margin-top:10px">Real traffic works too: send any request to <code>/gateway/search?q=...</code>.</p>
+    </section>
+    <section>
+      <h2>Try one request</h2>
+      <label for="preset">Example</label>
+      <select id="preset"></select>
+      <div class="row2"><div><label for="fMethod">Method</label><select id="fMethod"><option>GET</option><option>POST</option></select></div>
+      <div><label for="fPath">Endpoint</label><input id="fPath" value="/search"></div></div>
+      <label for="fQuery">Query string</label><input id="fQuery" class="mono">
+      <label for="fBody">Body</label><textarea id="fBody" class="mono"></textarea>
+      <div class="btns" style="margin-top:10px"><button class="primary" id="btnTry">Analyze request</button></div>
+    </section>
+  </div>
+
+  <div class="grid g2">
+    <section>
+      <h2>Recent decisions</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>#</th><th>Decision</th><th>Score</th><th>Request</th><th>Type</th><th>Path</th><th>ms</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="rowsEmpty">No traffic yet. Click "Mixed traffic" above to start.</div>
+      </div>
+    </section>
+    <div>
+      <section class="detail" style="margin-bottom:14px">
+        <h2>Why this decision</h2>
+        <div id="detail" class="empty">Click any row to see the explanation.</div>
+      </section>
+      <section>
+        <h2>Review queue (flagged requests)</h2>
+        <div id="queue"><div class="empty">Nothing waiting for review.</div></div>
+      </section>
+    </div>
+  </div>
+
+  <section>
+    <h2>System health</h2>
+    <div class="health" id="health"></div>
+  </section>
+</main>
+
+<script src="/static/chart.umd.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const md = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+const col = {ALLOW:'#1f8a4c', FLAG:'#b87a00', BLOCK:'#b3261e', ai:'#6a3fa0', blue:'#2a6fb0', ink:'#16233b'};
+const TYPE_NAMES = {sqli:'SQL injection', xss:'XSS', cmdi:'Command injection', traversal:'Path traversal',
+                    recon:'Scanner / bot', anomaly:'Unusual shape', suspicious:'Suspicious', normal:'Normal'};
+const AGENT_NAMES = {anomaly:'Anomaly', payload:'Payload', behavior:'Behavior'};
+let selected = null, last = null;
+
+let ME = {user: null, role: null, csrf: null};
+async function api(url, body) {
+  const headers = {'Content-Type':'application/json'};
+  if (body) headers['X-CSRF-Token'] = ME.csrf || '';
+  const r = await fetch(url, {method: body ? 'POST' : 'GET', headers, credentials: 'same-origin',
+                              body: body ? JSON.stringify(body) : undefined});
+  if (r.status === 401) { location.replace('/login'); throw new Error('login required'); }
+  return r.json();
+}
+async function loadMe() {
+  ME = await api('/api/me');
+  $('#who').textContent = `${ME.user} · ${ME.role === 'admin' ? 'Administrator' : 'Analyst'}`;
+  $('#btnReset').style.display = ME.role === 'admin' ? '' : 'none';
+}
+
+Chart.defaults.animation = false;
+Chart.defaults.font.family = '"Segoe UI",system-ui,sans-serif';
+Chart.defaults.color = '#41506b';
+const opt = {responsive:true, maintainAspectRatio:false};
+const cVerdict = new Chart($('#cVerdict'), {type:'doughnut',
+  data:{labels:['Allow','Flag','Block'], datasets:[{data:[0,0,0], backgroundColor:[col.ALLOW,col.FLAG,col.BLOCK], borderWidth:0}]},
+  options:{...opt, cutout:'62%', plugins:{legend:{position:'right'}}}});
+const cTypes = new Chart($('#cTypes'), {type:'bar',
+  data:{labels:[], datasets:[{data:[], backgroundColor:col.ai}]},
+  options:{...opt, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+const cLat = new Chart($('#cLat'), {type:'line',
+  data:{labels:[], datasets:[{label:'Latency', data:[], borderColor:col.blue, pointRadius:0, borderWidth:1.5, tension:.2},
+                             {label:'200 ms target', data:[], borderColor:col.BLOCK, borderDash:[5,4], pointRadius:0, borderWidth:1}]},
+  options:{...opt, plugins:{legend:{position:'bottom', labels:{boxWidth:12}}}, scales:{x:{display:false}, y:{beginAtZero:true, suggestedMax:50}}}});
+const cWeights = new Chart($('#cWeights'), {type:'bar',
+  data:{labels:['Anomaly','Payload','Behavior'], datasets:[{data:[1,1,1], backgroundColor:[col.blue, col.ai, col.FLAG]}]},
+  options:{...opt, plugins:{legend:{display:false}}, scales:{y:{min:0, max:2}}}});
+
+function badge(v){ return `<span class="badge b-${v}">${v}</span>`; }
+
+function render(s) {
+  last = s;
+  const c = s.counters;
+  $('#kTotal').textContent = c.total.toLocaleString();
+  $('#kFast').textContent = s.fast_share + '%';
+  $('#kAi').textContent = s.avg_ai_ms + ' ms';
+  $('#kP95').textContent = s.p95_ai_ms ? `(95% under ${s.p95_ai_ms} ms)` : '';
+  $('#kBlock').textContent = c.BLOCK;
+  $('#kFlag').textContent = s.queue.length;
+  const sim = s.simulator || {};
+  $('#liveDot').className = 'dot' + (sim.running ? ' on' : '');
+  $('#liveText').textContent = sim.running ? `Running: ${sim.done} / ${sim.total} requests` : 'Idle';
+
+  cVerdict.data.datasets[0].data = [c.ALLOW, c.FLAG, c.BLOCK]; cVerdict.update();
+  const types = Object.entries(s.attack_types).sort((a,b) => b[1]-a[1]);
+  cTypes.data.labels = types.map(t => TYPE_NAMES[t[0]] || t[0]);
+  cTypes.data.datasets[0].data = types.map(t => t[1]); cTypes.update();
+  cLat.data.labels = s.latency_series.map((_, i) => i);
+  cLat.data.datasets[0].data = s.latency_series;
+  cLat.data.datasets[1].data = s.latency_series.map(() => 200); cLat.update();
+
+  const a = s.agents;
+  cWeights.data.datasets[0].data = ['anomaly','payload','behavior'].map(n => a.weights[n]); cWeights.update();
+  $('#wBody').innerHTML = ['anomaly','payload','behavior'].map(n =>
+    `<tr style="cursor:default"><td>${AGENT_NAMES[n]}</td><td>${a.accuracy[n] == null ? 'no labels yet' : (a.accuracy[n]*100).toFixed(1)+'%'}</td><td>${a.weights[n].toFixed(2)}</td></tr>`).join('');
+  $('#wNote').textContent = `Weights start at 1.00 and stay between ${a.bounds[0]} and ${a.bounds[1]}. Updated ${a.updates} time(s), skipped ${a.skipped} (too few attacks in the window). Next check every ${a.update_every} labelled requests (${a.labelled} so far). Labels come from the simulator or your review clicks.`;
+
+  $('#rowsEmpty').style.display = s.recent.length ? 'none' : 'block';
+  $('#rows').innerHTML = s.recent.map(r => {
+    const q = (r.method + ' ' + r.path + (r.payload ? ' ' + r.payload : ''));
+    return `<tr tabindex="0" data-id="${r.id}" class="${selected && selected.id === r.id ? 'sel' : ''}">
+      <td>${r.id}</td><td>${badge(r.override ? r.override.toUpperCase() : r.verdict)}${r.override ? ' *' : ''}</td>
+      <td>${fmtScore(r.score)}</td><td class="req mono" title="${esc(q)}">${esc(q)}</td>
+      <td>${esc(TYPE_NAMES[r.attack_type] || r.attack_type)}</td>
+      <td><span class="route ${r.route}">${r.route === 'ai' ? 'AI agents' : 'Fast filter'}</span></td><td>${r.latency_ms}</td></tr>`;
+  }).join('');
+  $('#queue').innerHTML = s.queue.length ? s.queue.map(r => `
+    <div class="q"><div class="top"><span class="mono small">${esc(r.method + ' ' + r.path)}</span><span>score ${fmtScore(r.score)}</span></div>
+    <div class="small kv" style="margin:4px 0 6px">${esc(TYPE_NAMES[r.attack_type] || r.attack_type)}</div>
+    <div class="btns"><button class="good" data-ov="allow" data-id="${r.id}">Allow</button>
+    <button class="danger" data-ov="block" data-id="${r.id}">Block</button>
+    <button data-show="${r.id}">Why?</button></div></div>`).join('')
+    : '<div class="empty">Nothing waiting for review.</div>';
+  const names = {gateway:'API gateway', fast_filter:'Fast filter', anomaly:'Anomaly agent', payload:'Payload agent',
+                 behavior:'Behavior agent', decision_engine:'Decision engine', xai:'Explanation layer', database:'Audit database'};
+  $('#health').innerHTML = Object.entries(s.health).map(([k, v]) =>
+    `<span><i class="dot ${v ? '' : 'bad'}"></i>${names[k] || k}</span>`).join('');
+  if (selected) { const fresh = findRec(selected.id); if (fresh) showDetail(fresh, false); }
+}
+
+function fmtScore(v) { return v == null ? 'n/a' : v.toFixed(2); }
+
+function findRec(id) {
+  if (!last) return null;
+  return last.recent.find(r => r.id == id) || last.queue.find(r => r.id == id);
+}
+
+function showDetail(r, mark = true) {
+  selected = r;
+  const ex = r.explanation || {};
+  const ag = r.agents || {};
+  const agents = Object.keys(ag).length ? `<table class="small"><thead><tr><th>Agent</th><th>Threat score</th><th>Confidence</th><th>Weight</th></tr></thead><tbody>` +
+    ['anomaly','payload','behavior'].map(n => ag[n] ? `<tr style="cursor:default"><td>${AGENT_NAMES[n]}</td>
+      <td><div class="bar"><i style="width:${ag[n].score*100}%;background:${ag[n].score>=.5?col.BLOCK:col.ALLOW}"></i></div>${ag[n].score.toFixed(2)}</td>
+      <td>${ag[n].confidence.toFixed(2)}</td><td>${ag[n].weight.toFixed(2)}</td></tr>` : '').join('') + '</tbody></table>' : '';
+  $('#detail').className = 'detail';
+  $('#detail').innerHTML = `
+    <h3>${badge(r.override ? r.override.toUpperCase() : r.verdict)} &nbsp;Score ${fmtScore(r.score)}${r.override ? ' <span class="kv">(analyst override)</span>' : ''}</h3>
+    <div>${esc(ex.summary)}</div>
+    <div class="payload mono">${esc(r.method + ' ' + r.path)}${r.payload ? '<br>' + esc(r.payload) : ''}</div>
+    ${ex.evidence && ex.evidence.length ? '<ul>' + ex.evidence.map(e => `<li>${md(e)}</li>`).join('') + '</ul>' : ''}
+    ${agents}
+    <p class="kv" style="margin-top:10px"><b>Recommended action:</b> ${esc(ex.action)}</p>
+    <p class="kv">${r.mode === 'B' ? 'Final score = plain average of the agent scores (mode B).' : r.mode === 'C' ? 'Final score = share of agents voting attack (mode C).' : 'Final score = sum of (agent weight x confidence x threat score) divided by sum of (weight x confidence).'}${r.degraded ? ' Degraded: some agents did not answer.' : ''} Handled in ${r.latency_ms} ms.</p>`;
+  if (mark) document.querySelectorAll('#rows tr').forEach(t => t.classList.toggle('sel', t.dataset.id == r.id));
+}
+
+async function poll() {
+  try { render(await api('/api/stats')); } catch (e) { $('#liveText').textContent = 'Server not reachable'; }
+}
+
+// ---- events
+$('#rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) { const r = findRec(tr.dataset.id); if (r) showDetail(r); } });
+$('#rows').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.click(); });
+$('#queue').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.show) { const r = findRec(b.dataset.show); if (r) showDetail(r); return; }
+  if (b.dataset.ov) { await api('/api/override', {id: +b.dataset.id, action: b.dataset.ov}); poll(); }
+});
+document.querySelectorAll('[data-sim]').forEach(b => b.addEventListener('click', async () => {
+  const mode = b.dataset.sim;
+  const novel = $('#novel').checked || b.dataset.novel === '1';
+  const res = await api('/api/simulate', {mode, sessions: 15, novel: mode === 'normal' ? false : novel});
+  if (!res.started) alert('A simulation is already running. Click Stop first, or wait for it to finish.');
+  poll();
+}));
+$('#btnStop').onclick = async () => { await api('/api/simulate/stop', {}); poll(); };
+$('#btnReset').onclick = async () => {
+  if (!confirm('Clear all decisions and reset agent weights?')) return;
+  selected = null; $('#detail').className = 'empty'; $('#detail').textContent = 'Click any row to see the explanation.';
+  await api('/api/reset', {}); poll();
+};
+
+const PRESETS = [
+  ['Normal search', 'GET', '/search', 'q=red+running+shoes', ''],
+  ['Normal, but contains an apostrophe', 'GET', '/search', 'q=men%27s+running+shoes', ''],
+  ['SQL injection', 'GET', '/search', "q=%27+OR+1%3D1--", ''],
+  ['SQL injection, obfuscated (never seen in training)', 'GET', '/search', 'q=1%27/**/oR/**/2%3D2--', ''],
+  ['XSS in a feedback form', 'POST', '/feedback', '', '{"message": "<script>alert(document.cookie)<\/script>"}'],
+  ['XSS, obfuscated', 'POST', '/feedback', '', '{"message": "<details open ontoggle=alert(1)>"}'],
+  ['Command injection', 'GET', '/files', 'name=report.pdf%3B+cat+%2Fetc%2Fpasswd', ''],
+  ['Path traversal, double-encoded', 'GET', '/files', 'name=..%252f..%252fetc%252fpasswd', ''],
+  ['Probe of a hidden admin page', 'GET', '/admin', '', ''],
+];
+$('#preset').innerHTML = PRESETS.map((p, i) => `<option value="${i}">${esc(p[0])}</option>`).join('');
+function loadPreset() {
+  const p = PRESETS[$('#preset').value];
+  $('#fMethod').value = p[1]; $('#fPath').value = p[2]; $('#fQuery').value = p[3]; $('#fBody').value = p[4];
+}
+$('#preset').onchange = loadPreset; loadPreset();
+$('#btnTry').onclick = async () => {
+  const r = await api('/api/analyze', {method: $('#fMethod').value, endpoint: $('#fPath').value,
+                                       query: $('#fQuery').value, body: $('#fBody').value});
+  showDetail(r); poll();
+  $('#detail').scrollIntoView({behavior:'smooth', block:'nearest'});
+};
+
+$('#btnLogout').onclick = async () => {
+  try { await api('/logout', {}); } catch (_) {}
+  location.replace('/login');
+};
+
+loadMe().then(() => { poll(); setInterval(poll, 1200); }).catch(() => {});
+</script>
+</body>
+</html>

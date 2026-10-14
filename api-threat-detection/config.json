@@ -1,0 +1,59 @@
+{
+  "_comment": "All tunable numbers live here (SRS v1.1 CON-08, FR-085). The app refuses to start if a value is invalid (FR-086).",
+  "thresholds": {
+    "allow_below": 0.3,
+    "block_above": 0.7
+  },
+  "aggregation": {
+    "mode": "A",
+    "_modes": "A = confidence-weighted (default), B = equal-weight mean, C = majority vote",
+    "vote_threshold": 0.5,
+    "epsilon": 1e-06
+  },
+  "weights": {
+    "initial": 1.0,
+    "min": 0.1,
+    "max": 2.0,
+    "alpha": 0.3,
+    "max_delta": 0.2,
+    "update_every": 100,
+    "_update_every_note": "SRS default is 1000 labelled outcomes; 100 so the demo shows movement",
+    "window": 1000,
+    "min_positives": 30,
+    "use_analyst_labels": true,
+    "frozen": false
+  },
+  "agents": {
+    "timeout_ms": 150,
+    "disabled": [],
+    "failure_policy": "fail_open_flag",
+    "_failure_policy_options": "fail_open_flag (forward + FLAG) or fail_closed (BLOCK)"
+  },
+  "fast_filter": {
+    "rate_window_s": 10,
+    "rate_threshold": 8,
+    "max_payload_chars": 400
+  },
+  "gateway": {
+    "upstream": "http://127.0.0.1:8001",
+    "start_demo_api": true,
+    "demo_api_port": 8001,
+    "upstream_timeout_s": 5,
+    "trusted_proxy": false,
+    "_trusted_proxy_note": "true only when a reverse proxy you control sets X-Forwarded-For / X-User-Id (ADD-32)",
+    "rate_limit": {
+      "max_requests": 60,
+      "window_s": 10
+    },
+    "max_inspect_bytes": 65536
+  },
+  "auth": {
+    "session_idle_minutes": 30,
+    "session_max_hours": 12,
+    "cookie_secure": false,
+    "_cookie_secure_note": "set true when the dashboard is served over HTTPS",
+    "max_failed_logins": 5,
+    "lockout_minutes": 5,
+    "min_password_length": 8
+  }
+}

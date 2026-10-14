@@ -1,0 +1,292 @@
+{
+ "id": 328242,
+ "datasetId": 6319495,
+ "datasetPersistentId": "doi:10.7910/DVN/OGOIXX",
+ "datasetType": "dataset",
+ "storageIdentifier": "s3://10.7910/DVN/OGOIXX",
+ "versionNumber": 1,
+ "internalVersionNumber": 4,
+ "versionMinorNumber": 2,
+ "versionState": "RELEASED",
+ "latestVersionPublishingState": "DRAFT",
+ "deaccessionLink": "",
+ "lastUpdateTime": "2022-06-06T18:43:41Z",
+ "releaseTime": "2022-06-06T18:43:41Z",
+ "createTime": "2022-06-06T18:43:24Z",
+ "publicationDate": "2022-06-06",
+ "citationDate": "2022-06-06",
+ "effectiveDatasetFileCountLimit": 1000,
+ "datasetFileUploadsAvailable": 998,
+ "license": {
+  "name": "CC0 1.0",
+  "uri": "http://creativecommons.org/publicdomain/zero/1.0",
+  "iconUri": "https://licensebuttons.net/p/zero/1.0/88x31.png",
+  "rightsIdentifier": "CC0-1.0",
+  "rightsIdentifierScheme": "SPDX",
+  "schemeUri": "https://spdx.org/licenses/",
+  "languageCode": "en"
+ },
+ "fileAccessRequest": false,
+ "metadataBlocks": {
+  "citation": {
+   "displayName": "Citation Metadata",
+   "name": "citation",
+   "fields": [
+    {
+     "typeName": "title",
+     "multiple": false,
+     "typeClass": "primitive",
+     "value": "SR-BH 2020 multi-label dataset"
+    },
+    {
+     "typeName": "author",
+     "multiple": true,
+     "typeClass": "compound",
+     "value": [
+      {
+       "authorName": {
+        "typeName": "authorName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Sureda Riera, Tom\u00e1s"
+       },
+       "authorAffiliation": {
+        "typeName": "authorAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad de Alcal\u00e1"
+       },
+       "authorIdentifierScheme": {
+        "typeName": "authorIdentifierScheme",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "ORCID"
+       },
+       "authorIdentifier": {
+        "typeName": "authorIdentifier",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "0000-0002-1507-6273"
+       }
+      },
+      {
+       "authorName": {
+        "typeName": "authorName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Bermejo Higuera, Juan Ram\u00f3n"
+       },
+       "authorAffiliation": {
+        "typeName": "authorAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad Internacional de La Rioja"
+       },
+       "authorIdentifierScheme": {
+        "typeName": "authorIdentifierScheme",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "ORCID"
+       },
+       "authorIdentifier": {
+        "typeName": "authorIdentifier",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "0000-0002-0197-8663"
+       }
+      },
+      {
+       "authorName": {
+        "typeName": "authorName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Bermejo Higuera, Javier"
+       },
+       "authorAffiliation": {
+        "typeName": "authorAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad Internacional de La Rioja"
+       },
+       "authorIdentifierScheme": {
+        "typeName": "authorIdentifierScheme",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "ORCID"
+       },
+       "authorIdentifier": {
+        "typeName": "authorIdentifier",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "0000-0003-3681-2572"
+       }
+      },
+      {
+       "authorName": {
+        "typeName": "authorName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Sicilia Montalvo, Juan Antonio"
+       },
+       "authorAffiliation": {
+        "typeName": "authorAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad Internacional de La Rioja"
+       },
+       "authorIdentifierScheme": {
+        "typeName": "authorIdentifierScheme",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "ORCID"
+       },
+       "authorIdentifier": {
+        "typeName": "authorIdentifier",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "0000-0002-5962-4147"
+       }
+      },
+      {
+       "authorName": {
+        "typeName": "authorName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Mart\u00ednez Herr\u00e1iz, Jos\u00e9 Javier"
+       },
+       "authorAffiliation": {
+        "typeName": "authorAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad de Alcal\u00e1"
+       },
+       "authorIdentifierScheme": {
+        "typeName": "authorIdentifierScheme",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "ORCID"
+       },
+       "authorIdentifier": {
+        "typeName": "authorIdentifier",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "0000-0002-2351-7163"
+       }
+      }
+     ]
+    },
+    {
+     "typeName": "datasetContact",
+     "multiple": true,
+     "typeClass": "compound",
+     "value": [
+      {
+       "datasetContactName": {
+        "typeName": "datasetContactName",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Sureda Riera, Tom\u00e1s"
+       },
+       "datasetContactAffiliation": {
+        "typeName": "datasetContactAffiliation",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "Universidad de Alcal\u00e1"
+       },
+       "datasetContactEmail": {
+        "typeName": "datasetContactEmail",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "tsureda@gmail.com"
+       }
+      }
+     ]
+    },
+    {
+     "typeName": "dsDescription",
+     "multiple": true,
+     "typeClass": "compound",
+     "value": [
+      {
+       "dsDescriptionValue": {
+        "typeName": "dsDescriptionValue",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "The dataset is composed of web requests collected during 12 days of July 2020 by a web server (Wordpress) installed on a virtual machine and exposed to Internet. On this server, Modsecurity version 2.9.2 for Apache, with Core Rule Set (CRS) version 3.3.0 was installed in \u201dDetection only\u201d mode, so that all requests (legitimate and malicious) were recorded in the log generated by ModSecurity, but without being blocked. Daily, the logs generated by ModSecurity were collected and the virtual machine was restored to a clean state.\n\nOnce the web server exposure period was over, the collected logs were manually and semi-automatically processed to review the web request tagging performed by Modsecurity, correcting where necessary the normal/attack assignment to the corresponding web request and ensuring an appropriate CAPEC classification assignment.\n\nThe final result is a multi-label dataset aimed especially at web attack detection and composed of 907,814 requests of which 525,195 are normal requests and 382,619 are anomalous requests, where each record has 24 different features and a set of 13 labels."
+       }
+      }
+     ]
+    },
+    {
+     "typeName": "subject",
+     "multiple": true,
+     "typeClass": "controlledVocabulary",
+     "value": [
+      "Computer and Information Science"
+     ]
+    },
+    {
+     "typeName": "publication",
+     "multiple": true,
+     "typeClass": "compound",
+     "value": [
+      {
+       "publicationIDType": {
+        "typeName": "publicationIDType",
+        "multiple": false,
+        "typeClass": "controlledVocabulary",
+        "value": "doi"
+       },
+       "publicationIDNumber": {
+        "typeName": "publicationIDNumber",
+        "multiple": false,
+        "typeClass": "primitive",
+        "value": "10.1016/j.cose.2022.102788"
+       }
+      }
+     ]
+    },
+    {
+     "typeName": "depositor",
+     "multiple": false,
+     "typeClass": "primitive",
+     "value": "Sureda Riera, Tom\u00e1s"
+    },
+    {
+     "typeName": "dateOfDeposit",
+     "multiple": false,
+     "typeClass": "primitive",
+     "value": "2022-06-06"
+    }
+   ]
+  }
+ },
+ "files": [
+  {
+   "label": "data_capec_multilabel.csv",
+   "restricted": false,
+   "version": 1,
+   "datasetVersionId": 328242,
+   "dataFile": {
+    "id": 6319496,
+    "persistentId": "",
+    "filename": "data_capec_multilabel.csv",
+    "contentType": "text/csv",
+    "friendlyType": "Comma Separated Values",
+    "filesize": 436437661,
+    "storageIdentifier": "s3://dvn-cloud:1813a34638b-ce3451d8c4a4",
+    "rootDataFileId": 6319496,
+    "md5": "173ec515308bdce5aec19cfd5b792596",
+    "checksum": {
+     "type": "MD5",
+     "value": "173ec515308bdce5aec19cfd5b792596"
+    },
+    "tabularData": false,
+    "creationDate": "2022-06-06",
+    "publicationDate": "2022-06-06",
+    "lastUpdateTime": "2022-06-06T18:43:41Z",
+    "fileAccessRequest": false
+   }
+  }
+ ]
+}

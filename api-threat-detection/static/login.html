@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · API Threat Detection Console</title>
+<style>
+:root{--ink:#16233b;--ink2:#41506b;--paper:#eef1f5;--panel:#fff;--line:#d6dce5;--block:#b3261e;--block-bg:#fbe3e1;--focus:#2a6fb0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);
+  font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header{background:var(--ink);color:#fff;padding:14px 24px}
+header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
+header .sub{font-size:12.5px;opacity:.75}
+main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:64px 16px}
+.card{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:22px 24px}
+h2{font-size:16px;margin:0 0 4px;font-weight:650}
+.note{color:var(--ink2);font-size:12.5px;margin:0 0 16px}
+label{display:block;font-size:12.5px;color:var(--ink2);margin:12px 0 4px}
+input{width:100%;border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:inherit;background:#fff;color:var(--ink)}
+input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+button{margin-top:18px;width:100%;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:5px;padding:9px 12px;
+  font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.err{display:none;margin-top:14px;background:var(--block-bg);color:var(--block);border:1px solid #efc2bd;border-radius:5px;padding:8px 10px;font-size:13px}
+.foot{color:var(--ink2);font-size:12px;margin-top:16px}
+</style>
+</head>
+<body>
+<header>
+  <h1>API Threat Detection Console</h1>
+  <div class="sub">Analyst sign-in</div>
+</header>
+<main>
+  <form class="card" id="f" autocomplete="on" novalidate>
+    <h2>Sign in</h2>
+    <p class="note">Use the account your administrator created for you.</p>
+    <label for="u">Username</label>
+    <input id="u" name="username" autocomplete="username" required autofocus>
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <button id="b" type="submit">Sign in</button>
+    <div class="err" id="e" role="alert"></div>
+    <p class="foot">Sessions end after a period of inactivity.</p>
+  </form>
+</main>
+<script>
+const f = document.getElementById('f'), e = document.getElementById('e'), b = document.getElementById('b');
+f.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  e.style.display = 'none';
+  const username = f.username.value.trim(), password = f.password.value;
+  if (!username || !password) { e.textContent = 'Enter your username and password.'; e.style.display = 'block'; return; }
+  b.disabled = true; b.textContent = 'Signing in…';
+  try {
+    const r = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                     body: JSON.stringify({username, password})});
+    if (r.ok) { location.replace('/'); return; }
+    const d = await r.json().catch(() => ({}));
+    e.textContent = d.error || 'Sign-in failed.';
+  } catch (_) {
+    e.textContent = 'Server not reachable.';
+  }
+  e.style.display = 'block';
+  f.password.value = '';
+  f.password.focus();
+  b.disabled = false; b.textContent = 'Sign in';
+});
+</script>
+</body>
+</html>

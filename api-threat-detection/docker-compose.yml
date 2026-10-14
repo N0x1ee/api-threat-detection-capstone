@@ -1,0 +1,34 @@
+# One command (NFR-042):  docker compose up --build      then open http://localhost:8000
+# Only the System's port is published. The demo API is reachable only from inside the
+# compose network, so no request can reach it without passing the gateway (SEC-003, SEC-035).
+services:
+  system:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      UPSTREAM_URL: http://demo-api:8001
+      AUDIT_DB: /app/state/audit.db
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME (see README, Login)}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD (see README, Login)}
+    volumes:
+      - state:/app/state          # audit database survives restarts (FR-062)
+      - models:/app/models        # trained models are kept between runs
+    depends_on:
+      - demo-api
+
+  demo-api:
+    build: .
+    command: ["python", "-m", "demo_api.app"]
+    environment:
+      DEMO_API_HOST: 0.0.0.0
+      DEMO_API_PORT: "8001"
+      DEMO_API_LOG: /app/state/demo_api_access.log
+    volumes:
+      - state:/app/state
+    expose:
+      - "8001"                    # internal only, not published to the host
+
+volumes:
+  state:
+  models:

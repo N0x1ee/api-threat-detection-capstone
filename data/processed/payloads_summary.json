@@ -1,0 +1,37 @@
+{
+ "unique_payloads": 45168,
+ "dropped_ambiguous_cross_class": 5,
+ "dropped_lines": {
+  "blank": 352,
+  "too_long": 5,
+  "comment": 117
+ },
+ "by_class_and_split": {
+  "cmdi": {
+   "test": 1316,
+   "train": 6157,
+   "val": 1284
+  },
+  "sqli": {
+   "test": 240,
+   "train": 1164,
+   "val": 237
+  },
+  "ssrf": {
+   "heldout": 156
+  },
+  "ssti": {
+   "heldout": 148
+  },
+  "traversal": {
+   "test": 3550,
+   "train": 16592,
+   "val": 3634
+  },
+  "xss": {
+   "test": 1683,
+   "train": 7390,
+   "val": 1617
+  }
+ }
+}

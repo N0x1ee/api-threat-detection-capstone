@@ -1,0 +1,26 @@
+# --- secrets and local state (never commit) ---
+.env
+**/audit.db
+**/audit.db-journal
+api-threat-detection/models/
+api-threat-detection/demo_api/access.log
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- data ---
+# Half-finished downloads
+*.part
+*.crdownload
+# CSIC 2010 has no stated licence: keep it local, do not redistribute (SRS DS-4)
+data/raw/csic2010/
+
+# --- editors / OS ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+~$*.docx

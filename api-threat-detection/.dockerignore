@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+audit.db
+models/
+results/
+demo_api/access.log
+.git/
