@@ -70,7 +70,8 @@ def extract_features(req):
     query, body = req.get("query") or "", req.get("body") or ""
     path = req.get("path") or req.get("endpoint") or "/"
     h = req.get("headers") or {}
-    payload = normalize_text(query + " " + body).strip()
+    # Payload = path + query + body (SR-BH carries most attack strings in the path itself)
+    payload = normalize_text(path.split("?")[0] + " " + query + " " + body).strip()
     q_dec = normalize_text(query)
     n = len(payload)
     vals = [len(str(v)) for v in h.values()]
@@ -80,7 +81,7 @@ def extract_features(req):
         special = sum(1 for ch in payload if not ch.isalnum() and not ch.isspace()) / n
     else:
         alpha = digit = special = 0.0
-    nonprint = sum(1 for ch in query + body if not ch.isprintable() and ch not in "\r\n\t")
+    nonprint = sum(1 for ch in normalize_text(path) + query + body if not ch.isprintable() and ch not in "\r\n\t")
     total = len(req.get("method") or "") + len(path) + len(query) + len(body) + \
         sum(len(str(k)) + len(str(v)) for k, v in h.items())
     return [
@@ -114,10 +115,13 @@ class AnomalyAgent:
                  of sigma on validation data. Trees agree -> high confidence, whatever the score.
     """
     name = "anomaly"
-    feature_version = 2
+    feature_version = 3
 
-    def __init__(self, n_estimators=100, top_k=5, random_state=42):
+    def __init__(self, n_estimators=100, top_k=5, random_state=42, confidence_mode="ref"):
+        # confidence_mode "ref" = ADD-25 as written; "range" = sigma rescaled between its
+        # 5th and 95th validation percentiles (proposed change, pending team decision)
         self.n_estimators, self.top_k, self.random_state = n_estimators, top_k, random_state
+        self.confidence_mode = confidence_mode
 
     def fit(self, reqs, validation=None):
         X = np.array([extract_features(r) for r in reqs], dtype=float)
@@ -135,7 +139,9 @@ class AnomalyAgent:
         raw = -self.model.score_samples(X)
         self.t = float(np.percentile(raw, 98))
         self.k = max(1e-3, float(np.percentile(raw, 99.9) - np.percentile(raw, 50)) / 4)
-        self.sigma_ref = max(1e-6, float(np.percentile(self.tree_scores(X).std(1), 95)))
+        spread = self.tree_scores(X).std(1)
+        self.sigma_ref = max(1e-6, float(np.percentile(spread, 95)))
+        self.sigma_lo = float(np.percentile(spread, 5))
         self.calibrated_on = len(X)
         return self
 
@@ -152,6 +158,12 @@ class AnomalyAgent:
             hs.append(depth + _c(t.n_node_samples))
         self._h = hs
         self._norm = float(_c([self.model.max_samples_])[0])
+
+    def confidence_from_spread(self, sigma):
+        if getattr(self, "confidence_mode", "ref") == "range":
+            span = max(1e-6, self.sigma_ref - self.sigma_lo)
+            return float(1.0 - min(1.0, max(0.0, (sigma - self.sigma_lo) / span)))
+        return float(1.0 - min(1.0, sigma / self.sigma_ref))
 
     def tree_scores(self, X):
         """Per-tree anomaly scores s_t = 2^(-h_t / c(psi)), shape (n_requests, n_trees).
@@ -177,7 +189,7 @@ class AnomalyAgent:
             ts = self.tree_scores(x[None, :])[0]
             raw = float(2.0 ** np.log2(ts).mean())              # identical to -score_samples(x)
             sigma = float(ts.std())
-            conf = 1.0 - min(1.0, sigma / self.sigma_ref)
+            conf = self.confidence_from_spread(sigma)
         except Exception:                                       # AI-036: never default to max
             raw = float(-self.model.score_samples(x[None, :])[0])
             sigma, conf = None, 0.0
