@@ -22,7 +22,8 @@ def train_all(seed=7, normal_sessions=900, attacks_per_type=500, verbose=True):
     if verbose:
         print(f"  generated {len(normal)} normal requests from {normal_sessions} sessions")
 
-    anomaly = AnomalyAgent().fit(normal)                      # normal traffic only
+    held = [r for _ in range(max(50, normal_sessions // 6)) for r in generate_session(rng, "normal", 0)]
+    anomaly = AnomalyAgent().fit(normal, validation=held)     # normal traffic only; calibrated on held-out normal
     texts = [payload_text(r) for r in normal if payload_text(r)]
     labels = ["normal"] * len(texts)
     for kind in ATTACK_KINDS:                                 # KNOWN attack styles only
@@ -39,7 +40,10 @@ def train_all(seed=7, normal_sessions=900, attacks_per_type=500, verbose=True):
 
 def load_or_train(force=False):
     if not force and os.path.exists(MODEL_PATH):
-        return joblib.load(MODEL_PATH)
+        agents = joblib.load(MODEL_PATH)
+        if getattr(agents[0], "feature_version", 1) == AnomalyAgent.feature_version:
+            return agents
+        print("Saved models use an older feature set; retraining.")
     print("Training agents (first run only, about 20 seconds)...")
     agents = train_all()
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
