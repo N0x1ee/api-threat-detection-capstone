@@ -61,7 +61,7 @@ class GatewayTest(unittest.TestCase):
         cfg = load_config(overrides={"gateway": {"upstream": f"http://127.0.0.1:{self.port}", **gw}})
         pipe = Pipeline((FakeAgent("anomaly"), FakeAgent("payload"), FakeBehavior()), ":memory:", cfg=cfg)
         auth = Auth(":memory:", cfg["auth"])
-        self.addCleanup(pipe.db.close)
+        self.addCleanup(pipe.close)
         self.addCleanup(auth.close)
         return pipe, create_app(pipe, cfg, auth).test_client()
 
@@ -80,6 +80,7 @@ class GatewayTest(unittest.TestCase):
         rid = r.headers["X-Request-ID"]
         self.assertEqual(len(rid), 32)
         self.assertTrue(any(e["request_id"] == rid for e in self.access_log()))
+        pipe.flush()
         row = pipe.db.execute("SELECT request_id, verdict FROM decisions").fetchone()
         self.assertEqual(row, (rid, "ALLOW"))
 
@@ -93,6 +94,7 @@ class GatewayTest(unittest.TestCase):
             self.assertNotIn(word, body)
         rid = r.headers["X-Request-ID"]
         self.assertFalse(any(e["request_id"] == rid for e in self.access_log()))
+        pipe.flush()
         self.assertEqual(pipe.db.execute("SELECT verdict FROM decisions WHERE request_id=?", (rid,)).fetchone()[0], "BLOCK")
 
     # FR-028
@@ -101,6 +103,7 @@ class GatewayTest(unittest.TestCase):
         codes = [c.get("/gateway/help", headers={"User-Agent": "Mozilla/5.0"}).status_code for _ in range(5)]
         self.assertEqual(codes[:3], [200, 200, 200])
         self.assertEqual(codes[3:], [429, 429])
+        pipe.flush()
         n = pipe.db.execute("SELECT COUNT(*) FROM decisions WHERE route='rate_limit'").fetchone()[0]
         self.assertEqual(n, 2)
 
@@ -109,6 +112,7 @@ class GatewayTest(unittest.TestCase):
         pipe, c = self.make()
         c.get("/gateway/help", headers={"User-Agent": "Mozilla/5.0", "X-User-Id": "victim",
                                         "X-Forwarded-For": "9.9.9.9"})
+        pipe.flush()
         user, ip, src = pipe.db.execute("SELECT user, ip, identity_source FROM decisions").fetchone()
         self.assertNotIn("victim", user)
         self.assertNotEqual(ip, "9.9.9.9")

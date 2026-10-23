@@ -1,0 +1,73 @@
+{
+  "_comment": "Fast filter rules (SRS v1.1 FR-016). Edit here, not in code. Bump 'version' on every change; it is stored with each decision (FR-063). The app refuses to start if a pattern is invalid or risks catastrophic backtracking (SEC-030).",
+  "version": "1.0.0",
+  "endpoints": [
+    "/login",
+    "/logout",
+    "/profile",
+    "/products",
+    "/products/{id}",
+    "/cart",
+    "/checkout",
+    "/orders",
+    "/orders/{id}",
+    "/search",
+    "/settings",
+    "/help",
+    "/feedback",
+    "/files"
+  ],
+  "rules": [
+    {
+      "id": "R01-ENDPOINT",
+      "kind": "endpoint",
+      "reason": "endpoint {endpoint} is not one the API normally serves"
+    },
+    {
+      "id": "R02-UA-MISSING",
+      "kind": "ua_missing",
+      "reason": "no User-Agent header"
+    },
+    {
+      "id": "R03-UA-TOOL",
+      "kind": "ua_regex",
+      "reason": "User-Agent looks like a hacking or scripting tool",
+      "pattern": "sqlmap|nikto|nmap|masscan|python-requests|curl|wget|dirbuster|gobuster|scanner|zgrab|nuclei"
+    },
+    {
+      "id": "R04-RATE",
+      "kind": "rate",
+      "reason": "{rate} requests in {window} seconds"
+    },
+    {
+      "id": "R05-CHARS",
+      "kind": "payload_chars",
+      "reason": "contains special characters used in attacks",
+      "chars": "'<>;|`$()\\"
+    },
+    {
+      "id": "R06-WORDS",
+      "kind": "payload_regex",
+      "reason": "contains attack-related keywords",
+      "pattern": "\\b(select|union|insert|drop|delete|update|exec|script|alert|onerror|onload|onfocus|eval|passwd|shadow|wget|curl|whoami|sleep|javascript|iframe)\\b"
+    },
+    {
+      "id": "R07-PATTERNS",
+      "kind": "payload_regex",
+      "reason": "matches a known attack pattern",
+      "pattern": "\\.\\./|\\.\\.\\\\|/etc/|%00|--|/\\*|\\bor\\b\\s*['\\d]"
+    },
+    {
+      "id": "R08-LENGTH",
+      "kind": "payload_length",
+      "reason": "payload is unusually long"
+    },
+    {
+      "id": "R09-HEADERS",
+      "kind": "header_bounds",
+      "reason": "too many headers or an oversized header value",
+      "max_headers": 40,
+      "max_header_value_chars": 4096
+    }
+  ]
+}

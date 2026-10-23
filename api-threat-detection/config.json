@@ -30,9 +30,12 @@
     "_failure_policy_options": "fail_open_flag (forward + FLAG) or fail_closed (BLOCK)"
   },
   "fast_filter": {
+    "rules_file": "rules/fast_filter.json",
+    "_rules_note": "signatures, endpoint list and header limits live in the rules file (FR-016)",
     "rate_window_s": 10,
     "rate_threshold": 8,
-    "max_payload_chars": 400
+    "max_payload_chars": 400,
+    "cache_ttl_s": 60
   },
   "gateway": {
     "upstream": "http://127.0.0.1:8001",
@@ -55,5 +58,9 @@
     "max_failed_logins": 5,
     "lockout_minutes": 5,
     "min_password_length": 8
+  },
+  "audit": {
+    "async_writes": true,
+    "queue_size": 10000
   }
 }

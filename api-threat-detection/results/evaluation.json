@@ -455,16 +455,42 @@
   "fast_filter_bypass_normal": 0.98667363470081,
   "fast_filter_missed_attacks": 0.0125,
   "degraded_decisions": 0,
+  "stage_latency_ms": {
+   "fast_filter": {
+    "p50": 0.033,
+    "p95": 0.089,
+    "p99": 0.13,
+    "n": 5427
+   },
+   "agents": {
+    "p50": 10.261,
+    "p95": 14.386,
+    "p99": 17.377,
+    "n": 1631
+   },
+   "aggregation": {
+    "p50": 0.014,
+    "p95": 0.022,
+    "p99": 0.043,
+    "n": 1631
+   },
+   "explanation": {
+    "p50": 0.032,
+    "p95": 0.053,
+    "p99": 0.072,
+    "n": 1631
+   }
+  },
   "latency_ms": {
    "analysis": {
-    "p50": 11.43,
-    "p95": 16.83,
-    "p99": 19.1
+    "p50": 10.4,
+    "p95": 14.54,
+    "p99": 17.55
    },
    "bypass": {
-    "p50": 0.02,
-    "p95": 0.1,
-    "p99": 0.14
+    "p50": 0.03,
+    "p95": 0.11,
+    "p99": 0.17
    }
   }
  },
@@ -500,13 +526,39 @@
     "failure_policy": "fail_open_flag"
    },
    "fast_filter": {
+    "rules_file": "rules/fast_filter.json",
     "rate_window_s": 10,
     "rate_threshold": 8,
-    "max_payload_chars": 400
+    "max_payload_chars": 400,
+    "cache_ttl_s": 60
+   },
+   "audit": {
+    "async_writes": true,
+    "queue_size": 10000
+   },
+   "gateway": {
+    "upstream": "http://127.0.0.1:8001",
+    "start_demo_api": true,
+    "demo_api_port": 8001,
+    "upstream_timeout_s": 5,
+    "trusted_proxy": false,
+    "rate_limit": {
+     "max_requests": 60,
+     "window_s": 10
+    },
+    "max_inspect_bytes": 65536
+   },
+   "auth": {
+    "session_idle_minutes": 30,
+    "session_max_hours": 12,
+    "cookie_secure": false,
+    "max_failed_logins": 5,
+    "lockout_minutes": 5,
+    "min_password_length": 8
    }
   },
-  "model_file_md5": "d4a58c9481165e21274715657f91f40b",
+  "model_file_md5": "8b28c6c4b63e3b67ab5a40fc91239a20",
   "python": "3.13.16",
-  "when": "2026-10-13 17:28:06"
+  "when": "2026-10-23 20:26:54"
  }
 }

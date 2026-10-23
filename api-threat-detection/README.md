@@ -29,6 +29,13 @@ Every tunable number is in `config.json`: thresholds, aggregation mode (A/B/C), 
 - **Identity** is the session cookie, bearer token or API key (stored only as hashes), otherwise the source IP. `X-User-Id` and `X-Forwarded-For` sent by a client are **ignored**, so an attacker cannot reset their history by changing a header. Set `gateway.trusted_proxy` to `true` only behind a proxy you control.
 - **If the shop API is down**, the gateway returns `502`.
 
+## Fast filter rules, reviews and timing
+
+- **Rules live in `rules/fast_filter.json`:** endpoint list, User-Agent and payload patterns, header limits, each with an ID (R01–R09) and a `version`. Edit the file and bump the version; no code change is needed. The app refuses to start if a pattern is invalid or could backtrack catastrophically. Each decision records which rule IDs matched and the rules version. The filter now also checks the URL path, not just query and body.
+- **Analyst reviews are separate records** (`adjudications` table). The review queue offers *Confirm attack*, *Mark safe* and *Not sure*. A reason is required, and an optional corrected verdict can be recorded. The original decision row is never changed. Confirmed reviews feed the agent weights; *Not sure* does not. History: `GET /api/decisions/<id>/adjudications`.
+- **Per-stage timing** is recorded for every decision: fast filter, agents (plus each agent), aggregation and explanation. It is shown in the decision detail, in `/api/stats` (`stage_latency_ms`) and in `evaluate.py`'s report.
+- **Audit writes happen in a background thread**, so the client never waits for the database. On shutdown the queue is written out first. Failed writes are counted, never silently dropped.
+
 ## Login
 
 The dashboard needs an account. Nothing is built in (no default passwords).
@@ -112,6 +119,8 @@ evaluate.py           compares voting methods, writes results/evaluation.md
 app/traffic.py        synthetic normal, attack and scanner traffic
 app/agents.py         the three agents
 app/config.py         loads and checks config.json
+app/fastfilter.py     rule engine for rules/fast_filter.json
+rules/fast_filter.json  fast filter rules (versioned)
 app/decision.py       aggregation modes, verdict bands, adaptive weights, explanations
 tests/                unit tests (decision engine, config, timeouts, failure policy)
 config.json           all tunable settings

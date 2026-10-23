@@ -208,7 +208,7 @@ class TestPipeline(unittest.TestCase):
         cfg = load_config(overrides=overrides or {})
         agents = (Fake(0.2, 0.8), Fake(0.9, 0.9, payload_delay, payload_raises), Fake(0.1, 0.5))
         p = Pipeline(agents, ":memory:", cfg=cfg)
-        self.addCleanup(p.db.close)
+        self.addCleanup(p.close)
         return p
 
     REQ = {"method": "GET", "path": "/search", "endpoint": "/search", "query": "q=x'", "body": "",

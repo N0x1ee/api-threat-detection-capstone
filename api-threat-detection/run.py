@@ -7,6 +7,7 @@ import sys
 
 from app.auth import Auth, AuthError
 from app.config import ConfigError, load_config
+from app.fastfilter import RulesError
 from app.pipeline import Pipeline
 from app.server import create_app
 from app.training import load_or_train
@@ -27,7 +28,12 @@ if __name__ == "__main__":
         print(f"  Demo shop API (protected, local only) -> http://127.0.0.1:{cfg['gateway']['demo_api_port']}")
     agents = load_or_train()
     db_path = os.environ.get("AUDIT_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "audit.db"))
-    pipeline = Pipeline(agents, db_path, cfg=cfg)
+    try:
+        pipeline = Pipeline(agents, db_path, cfg=cfg)
+    except RulesError as e:                       # FR-016 / SEC-030: bad rules file -> refuse to start
+        raise SystemExit(f"rules file problem: {e}")
+    import atexit
+    atexit.register(pipeline.close)               # write any queued audit records, then close the database
     auth = Auth(db_path, cfg["auth"])
     try:
         for u in auth.seed_from_env(os.environ):

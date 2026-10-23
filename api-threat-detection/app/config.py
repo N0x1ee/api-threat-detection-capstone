@@ -18,7 +18,9 @@ DEFAULTS = {
                 "update_every": 1000, "window": 1000, "min_positives": 30,
                 "use_analyst_labels": True, "frozen": False},
     "agents": {"timeout_ms": 150, "disabled": [], "failure_policy": "fail_open_flag"},
-    "fast_filter": {"rate_window_s": 10, "rate_threshold": 8, "max_payload_chars": 400},
+    "fast_filter": {"rules_file": "rules/fast_filter.json", "rate_window_s": 10, "rate_threshold": 8,
+                    "max_payload_chars": 400, "cache_ttl_s": 60},
+    "audit": {"async_writes": True, "queue_size": 10000},
     "gateway": {"upstream": "http://127.0.0.1:8001", "start_demo_api": True, "demo_api_port": 8001,
                 "upstream_timeout_s": 5, "trusted_proxy": False,
                 "rate_limit": {"max_requests": 60, "window_s": 10}, "max_inspect_bytes": 65536},
@@ -83,6 +85,12 @@ def validate(cfg):
     _num(cfg, "fast_filter", "rate_window_s", 0, lo_open=True)
     _num(cfg, "fast_filter", "rate_threshold", 1, integer=True)
     _num(cfg, "fast_filter", "max_payload_chars", 1, integer=True)
+    _num(cfg, "fast_filter", "cache_ttl_s", 0)
+    if not isinstance(cfg["fast_filter"]["rules_file"], str) or not cfg["fast_filter"]["rules_file"]:
+        raise ConfigError("fast_filter.rules_file must be a path to the rules JSON file")
+    if not isinstance(cfg["audit"]["async_writes"], bool):
+        raise ConfigError("audit.async_writes must be true or false")
+    _num(cfg, "audit", "queue_size", 1, integer=True)
     g = cfg["gateway"]
     if not str(g["upstream"]).startswith(("http://", "https://")):
         raise ConfigError(f"gateway.upstream must start with http:// or https://, got {g['upstream']!r}")

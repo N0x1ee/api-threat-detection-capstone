@@ -73,6 +73,7 @@ tbody tr.sel{background:#eaf1fa}
 .empty{color:var(--ink2);padding:14px 4px}
 .q{border:1px solid var(--line);border-radius:5px;padding:8px 10px;margin-bottom:8px}
 .q .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.rv textarea{width:100%;font:inherit;resize:vertical}
 .small{font-size:12.5px}
 </style>
 </head>
@@ -245,18 +246,12 @@ function render(s) {
   $('#rows').innerHTML = s.recent.map(r => {
     const q = (r.method + ' ' + r.path + (r.payload ? ' ' + r.payload : ''));
     return `<tr tabindex="0" data-id="${r.id}" class="${selected && selected.id === r.id ? 'sel' : ''}">
-      <td>${r.id}</td><td>${badge(r.override ? r.override.toUpperCase() : r.verdict)}${r.override ? ' *' : ''}</td>
+      <td>${r.id}</td><td>${badge(r.verdict)}${r.adjudication ? ` <span class="kv" title="Reviewed by ${esc(r.adjudication.analyst || '')}">✓ ${esc(r.adjudication.outcome)}</span>` : ''}</td>
       <td>${fmtScore(r.score)}</td><td class="req mono" title="${esc(q)}">${esc(q)}</td>
       <td>${esc(TYPE_NAMES[r.attack_type] || r.attack_type)}</td>
       <td><span class="route ${r.route}">${r.route === 'ai' ? 'AI agents' : 'Fast filter'}</span></td><td>${r.latency_ms}</td></tr>`;
   }).join('');
-  $('#queue').innerHTML = s.queue.length ? s.queue.map(r => `
-    <div class="q"><div class="top"><span class="mono small">${esc(r.method + ' ' + r.path)}</span><span>score ${fmtScore(r.score)}</span></div>
-    <div class="small kv" style="margin:4px 0 6px">${esc(TYPE_NAMES[r.attack_type] || r.attack_type)}</div>
-    <div class="btns"><button class="good" data-ov="allow" data-id="${r.id}">Allow</button>
-    <button class="danger" data-ov="block" data-id="${r.id}">Block</button>
-    <button data-show="${r.id}">Why?</button></div></div>`).join('')
-    : '<div class="empty">Nothing waiting for review.</div>';
+  if (!openReview) renderQueue(s.queue);
   const names = {gateway:'API gateway', fast_filter:'Fast filter', anomaly:'Anomaly agent', payload:'Payload agent',
                  behavior:'Behavior agent', decision_engine:'Decision engine', xai:'Explanation layer', database:'Audit database'};
   $('#health').innerHTML = Object.entries(s.health).map(([k, v]) =>
@@ -264,6 +259,44 @@ function render(s) {
   if (selected) { const fresh = findRec(selected.id); if (fresh) showDetail(fresh, false); }
 }
 
+let openReview = null;     // {id, outcome}: while a review form is open, polling does not redraw the queue
+const OUTCOME_LABEL = {malicious: 'Confirm attack', benign: 'Mark safe', undetermined: 'Not sure'};
+function renderQueue(items) {
+  $('#queue').innerHTML = items.length ? items.map(r => `
+    <div class="q" data-qid="${r.id}"><div class="top"><span class="mono small">${esc(r.method + ' ' + r.path)}</span><span>score ${fmtScore(r.score)}</span></div>
+    <div class="small kv" style="margin:4px 0 6px">${esc(TYPE_NAMES[r.attack_type] || r.attack_type)}</div>
+    <div class="btns"><button class="danger" data-adj="malicious" data-id="${r.id}">Confirm attack</button>
+    <button class="good" data-adj="benign" data-id="${r.id}">Mark safe</button>
+    <button data-adj="undetermined" data-id="${r.id}">Not sure</button>
+    <button data-show="${r.id}">Why?</button></div></div>`).join('')
+    : '<div class="empty">Nothing waiting for review.</div>';
+}
+function openReviewForm(id, outcome) {
+  openReview = {id, outcome};
+  const card = document.querySelector(`#queue [data-qid="${id}"]`);
+  if (!card) return;
+  card.querySelector('.btns').outerHTML = `
+    <div class="rv">
+      <label for="rvText">${OUTCOME_LABEL[outcome]}: reason (required)</label>
+      <textarea id="rvText" rows="2" placeholder="e.g. payload is a UNION SELECT probe on /search"></textarea>
+      <label for="rvVerdict">Correct the verdict to (optional)</label>
+      <select id="rvVerdict"><option value="">Leave as recorded</option><option>ALLOW</option><option>BLOCK</option></select>
+      <div class="rvErr small" role="alert" style="color:var(--block);margin-top:4px"></div>
+      <div class="btns" style="margin-top:6px"><button class="primary" data-save="${id}">Save review</button><button data-cancel="1">Cancel</button></div>
+    </div>`;
+  $('#rvText').focus();
+}
+
+function timingLine(r) {
+  const t = r.timings || {};
+  const parts = [];
+  if (t.fast_filter != null) parts.push(`fast filter ${t.fast_filter} ms`);
+  if (t.agents != null) parts.push(`agents ${t.agents} ms`);
+  if (t.aggregation != null) parts.push(`aggregation ${t.aggregation} ms`);
+  if (t.explanation != null) parts.push(`explanation ${t.explanation} ms`);
+  const rules = (r.rule_ids || []).length ? ` · rules matched: ${r.rule_ids.map(esc).join(', ')}` : '';
+  return parts.length || rules ? `<p class="kv small">Stages: ${parts.join(' · ')}${rules}${r.rules_version ? ` (rules v${esc(r.rules_version)})` : ''}</p>` : '';
+}
 function fmtScore(v) { return v == null ? 'n/a' : v.toFixed(2); }
 
 function findRec(id) {
@@ -281,13 +314,15 @@ function showDetail(r, mark = true) {
       <td>${ag[n].confidence.toFixed(2)}</td><td>${ag[n].weight.toFixed(2)}</td></tr>` : '').join('') + '</tbody></table>' : '';
   $('#detail').className = 'detail';
   $('#detail').innerHTML = `
-    <h3>${badge(r.override ? r.override.toUpperCase() : r.verdict)} &nbsp;Score ${fmtScore(r.score)}${r.override ? ' <span class="kv">(analyst override)</span>' : ''}</h3>
+    <h3>${badge(r.verdict)} &nbsp;Score ${fmtScore(r.score)}</h3>
     <div>${esc(ex.summary)}</div>
     <div class="payload mono">${esc(r.method + ' ' + r.path)}${r.payload ? '<br>' + esc(r.payload) : ''}</div>
     ${ex.evidence && ex.evidence.length ? '<ul>' + ex.evidence.map(e => `<li>${md(e)}</li>`).join('') + '</ul>' : ''}
     ${agents}
     <p class="kv" style="margin-top:10px"><b>Recommended action:</b> ${esc(ex.action)}</p>
-    <p class="kv">${r.mode === 'B' ? 'Final score = plain average of the agent scores (mode B).' : r.mode === 'C' ? 'Final score = share of agents voting attack (mode C).' : 'Final score = sum of (agent weight x confidence x threat score) divided by sum of (weight x confidence).'}${r.degraded ? ' Degraded: some agents did not answer.' : ''} Handled in ${r.latency_ms} ms.</p>`;
+    <p class="kv">${r.mode === 'B' ? 'Final score = plain average of the agent scores (mode B).' : r.mode === 'C' ? 'Final score = share of agents voting attack (mode C).' : 'Final score = sum of (agent weight x confidence x threat score) divided by sum of (weight x confidence).'}${r.degraded ? ' Degraded: some agents did not answer.' : ''} Handled in ${r.latency_ms} ms.</p>
+    ${timingLine(r)}
+    ${r.adjudication ? `<div class="payload"><b>Analyst review:</b> ${esc(r.adjudication.outcome)}${r.adjudication.corrected_verdict ? ' → ' + esc(r.adjudication.corrected_verdict) : ''} by ${esc(r.adjudication.analyst || 'unknown')} after ${r.adjudication.seconds_in_queue} s<br>${esc(r.adjudication.justification)}</div>` : ''}`;
   if (mark) document.querySelectorAll('#rows tr').forEach(t => t.classList.toggle('sel', t.dataset.id == r.id));
 }
 
@@ -301,7 +336,14 @@ $('#rows').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.cl
 $('#queue').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.show) { const r = findRec(b.dataset.show); if (r) showDetail(r); return; }
-  if (b.dataset.ov) { await api('/api/override', {id: +b.dataset.id, action: b.dataset.ov}); poll(); }
+  if (b.dataset.adj) { openReviewForm(+b.dataset.id, b.dataset.adj); return; }
+  if (b.dataset.cancel) { openReview = null; poll(); return; }
+  if (b.dataset.save) {
+    const res = await api(`/api/decisions/${b.dataset.save}/adjudicate`,
+      {outcome: openReview.outcome, justification: $('#rvText').value, corrected_verdict: $('#rvVerdict').value || null});
+    if (res.error) { document.querySelector('.rvErr').textContent = res.error; return; }
+    openReview = null; showDetail(res); poll();
+  }
 });
 document.querySelectorAll('[data-sim]').forEach(b => b.addEventListener('click', async () => {
   const mode = b.dataset.sim;

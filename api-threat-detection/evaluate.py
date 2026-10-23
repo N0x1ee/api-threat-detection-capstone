@@ -196,6 +196,9 @@ def main():
         "fast_filter_bypass_normal": sum(x["route"] == "fast" for x in normal) / len(normal),
         "fast_filter_missed_attacks": sum(x["route"] == "fast" for x in attacks) / len(attacks),
         "degraded_decisions": sum(bool(x["degraded"]) for x in normal + attacks),
+        "stage_latency_ms": {k: Pipeline._pcts([x["timings"].get(k) for x in normal + attacks
+                                                if x["route"] == "ai" or k == "fast_filter"])
+                             for k in ("fast_filter", "agents", "aggregation", "explanation")},
         "latency_ms": {"analysis": {"p50": pct(ai_lat, .5), "p95": pct(ai_lat, .95), "p99": pct(ai_lat, .99)},
                        "bypass": {"p50": pct(fast_lat, .5), "p95": pct(fast_lat, .95), "p99": pct(fast_lat, .99)}},
     }
@@ -268,6 +271,10 @@ def to_markdown(rep, t1, t2):
           f"- Decisions made in degraded mode (an agent timed out or failed): **{p['degraded_decisions']}**",
           f"- Analysis path: p50 {_f(la['p50'], 1)} ms, p95 {_f(la['p95'], 1)} ms, p99 {_f(la['p99'], 1)} ms (target p95 ≤ 200 ms)",
           f"- Bypass path: p50 {_f(lb['p50'], 2)} ms, p95 {_f(lb['p95'], 2)} ms, p99 {_f(lb['p99'], 2)} ms (target p95 ≤ 20 ms)",
+          "", "Per-stage latency (ms; fast filter over all requests, other stages over analysed requests):", "",
+          "| Stage | p50 | p95 | p99 |", "|---|---|---|---|",
+          *[f"| {k.replace('_', ' ')} | {_f(v['p50'], 3)} | {_f(v['p95'], 3)} | {_f(v['p99'], 3)} |"
+            for k, v in p["stage_latency_ms"].items() if v],
           "", "Latency here is in-process (no network) on the machine that ran this script.",
           "", f"Model file md5: `{run['model_file_md5']}` · Python {run['python']}. Full config in `evaluation.json`.", ""]
     return "\n".join(L)

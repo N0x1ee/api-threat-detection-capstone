@@ -300,11 +300,19 @@ def create_app(pipeline, cfg=None, auth=None):
         sim.stop_flag = True
         return jsonify(ok=True)
 
-    @app.post("/api/override")
-    def override():
+    @app.post("/api/decisions/<int:rec_id>/adjudicate")
+    def adjudicate(rec_id):
+        """FR-079..083: analyst verdict with mandatory justification, stored as a linked record."""
         d = request.get_json(force=True, silent=True) or {}
-        rec = pipeline.override(int(d.get("id", -1)), d.get("action", ""), analyst=g.user)
-        return (jsonify(pipeline.public(rec)), 200) if rec else (jsonify(error="not found"), 404)
+        rec, err = pipeline.adjudicate(rec_id, d.get("outcome"), d.get("justification"), analyst=g.user,
+                                       corrected_verdict=d.get("corrected_verdict") or None)
+        if err:
+            return jsonify(error=err), (404 if err == "decision not found" else 400)
+        return jsonify(pipeline.public(rec))
+
+    @app.get("/api/decisions/<int:rec_id>/adjudications")
+    def adjudications(rec_id):
+        return jsonify(adjudications=pipeline.adjudications_for(rec_id))
 
     @app.post("/api/reset")
     def reset():

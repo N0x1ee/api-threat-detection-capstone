@@ -1,6 +1,6 @@
 # Evaluation results
 
-Seed 99 · 5427 requests (1600 malicious) · thresholds allow < 0.3, block > 0.7 · mode A · 2026-10-13 17:28:06
+Seed 99 · 5427 requests (1600 malicious) · thresholds allow < 0.3, block > 0.7 · mode A · 2026-10-23 20:26:54
 
 > These agents are still the prototype models, trained and tested on the synthetic generator. The numbers check that the pipeline and evaluation work; they are not research results yet.
 
@@ -89,9 +89,18 @@ For each agent: requests grouped by the agent's confidence, and how often its ow
 - Normal traffic cleared by the fast filter: **98.7%** (an observation, not a target)
 - Attacks the fast filter wrongly cleared: **1.2%**
 - Decisions made in degraded mode (an agent timed out or failed): **0**
-- Analysis path: p50 11.4 ms, p95 16.8 ms, p99 19.1 ms (target p95 ≤ 200 ms)
-- Bypass path: p50 0.02 ms, p95 0.10 ms, p99 0.14 ms (target p95 ≤ 20 ms)
+- Analysis path: p50 10.4 ms, p95 14.5 ms, p99 17.6 ms (target p95 ≤ 200 ms)
+- Bypass path: p50 0.03 ms, p95 0.11 ms, p99 0.17 ms (target p95 ≤ 20 ms)
+
+Per-stage latency (ms; fast filter over all requests, other stages over analysed requests):
+
+| Stage | p50 | p95 | p99 |
+|---|---|---|---|
+| fast filter | 0.033 | 0.089 | 0.130 |
+| agents | 10.261 | 14.386 | 17.377 |
+| aggregation | 0.014 | 0.022 | 0.043 |
+| explanation | 0.032 | 0.053 | 0.072 |
 
 Latency here is in-process (no network) on the machine that ran this script.
 
-Model file md5: `d4a58c9481165e21274715657f91f40b` · Python 3.13.16. Full config in `evaluation.json`.
+Model file md5: `8b28c6c4b63e3b67ab5a40fc91239a20` · Python 3.13.16. Full config in `evaluation.json`.

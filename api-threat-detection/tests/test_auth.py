@@ -89,7 +89,7 @@ class AccessControlTest(unittest.TestCase):
         cfg = load_config()
         self.pipe = Pipeline((Quiet(), Quiet(), Quiet()), ":memory:", cfg=cfg)
         self.auth = Auth(":memory:", cfg["auth"])
-        self.addCleanup(self.pipe.db.close)
+        self.addCleanup(self.pipe.close)
         self.addCleanup(self.auth.close)
         self.auth.add_user("admin1", PW, "admin")
         self.auth.add_user("analyst1", PW, "analyst")
@@ -145,14 +145,20 @@ class AccessControlTest(unittest.TestCase):
         self.assertEqual(self.c.post("/logout", headers={"X-CSRF-Token": csrf}).status_code, 200)
         self.assertEqual(self.c.get("/api/stats").status_code, 401)
 
-    def test_override_records_analyst(self):                 # FR-081
+    def test_adjudication_records_analyst(self):              # FR-079..083
         csrf = self.login("analyst1")
         rec = self.c.post("/api/analyze", json={"endpoint": "/search", "query": "q=x'"},
                           headers={"X-CSRF-Token": csrf}).get_json()
-        r = self.c.post("/api/override", json={"id": rec["id"], "action": "block"}, headers={"X-CSRF-Token": csrf})
-        self.assertEqual(r.get_json()["override_by"], "analyst1")
-        row = self.pipe.db.execute("SELECT override, override_by FROM decisions WHERE id=?", (rec["id"],)).fetchone()
-        self.assertEqual(row, ("block", "analyst1"))
+        url = f"/api/decisions/{rec['id']}/adjudicate"
+        r = self.c.post(url, json={"outcome": "malicious"}, headers={"X-CSRF-Token": csrf})
+        self.assertEqual(r.status_code, 400)                  # justification is mandatory
+        r = self.c.post(url, json={"outcome": "malicious", "justification": "obvious quote probe",
+                                   "corrected_verdict": "BLOCK"}, headers={"X-CSRF-Token": csrf})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get_json()["adjudication"]["analyst"], "analyst1")
+        hist = self.c.get(f"/api/decisions/{rec['id']}/adjudications").get_json()["adjudications"]
+        self.assertEqual([h["outcome"] for h in hist], ["malicious"])
+        self.assertEqual(hist[0]["corrected_verdict"], "BLOCK")
 
     def test_gateway_stays_public(self):
         r = self.c.get("/gateway/help", headers={"User-Agent": "Mozilla/5.0"})
