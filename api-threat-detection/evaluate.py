@@ -122,12 +122,17 @@ def main():
     ap.add_argument("--config", default=None)
     ap.add_argument("--seed", type=int, default=99)
     ap.add_argument("--warmup", type=float, default=0.3, help="share of test requests used to adapt weights")
+    ap.add_argument("--behavior", choices=["markov", "lstm"], default="lstm")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
     t1, t2 = cfg["thresholds"]["allow_below"], cfg["thresholds"]["block_above"]
     agg_cfg = cfg["aggregation"]
     agents = load_or_train()
+    if args.behavior == "lstm":                    # primary behaviour model (AI-026) instead of Markov
+        from app.behavior_lstm import LSTMBehaviorAgent
+        agents = (agents[0], agents[1], LSTMBehaviorAgent(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                         "weights", "behavior_lstm.npz")))
     # generous timeout here: evaluation measures detection, latency is measured separately below
     eval_cfg = load_config(args.config, overrides={"agents": {"timeout_ms": 10_000, "disabled": []}})
     pipe = Pipeline(agents, ":memory:", cfg=eval_cfg)
@@ -148,9 +153,10 @@ def main():
         return 0.5 if a.score is None else a.score     # fail-open FLAG counts as a mid score
 
     methods = {
-        "Mode A: confidence-weighted (ours)": lambda r: agg_score(r, "A"),
+        "Mode A: confidence-weighted mean": lambda r: agg_score(r, "A"),
         "Mode B: equal-weight average": lambda r: agg_score(r, "B"),
         "Mode C: simple majority vote": lambda r: agg_score(r, "C"),
+        "Mode D: confidence-weighted noisy-OR (default)": lambda r: agg_score(r, "D"),
         **{f"{n.capitalize()} agent alone": (lambda r, n=n: r["res"][n].score) for n in AGENT_NAMES},
         **{f"Mode A without {n} agent": (lambda r, n=n: agg_score(r, "A", drop=(n,))) for n in AGENT_NAMES},
     }

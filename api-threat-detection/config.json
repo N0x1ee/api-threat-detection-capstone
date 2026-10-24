@@ -5,8 +5,8 @@
     "block_above": 0.7
   },
   "aggregation": {
-    "mode": "A",
-    "_modes": "A = confidence-weighted (default), B = equal-weight mean, C = majority vote",
+    "mode": "D",
+    "_modes": "A = confidence-weighted mean, B = equal-weight mean, C = majority vote, D = confidence-weighted noisy-OR (default: specialists can't cancel each other)",
     "vote_threshold": 0.5,
     "epsilon": 1e-06
   },
@@ -27,7 +27,13 @@
     "timeout_ms": 150,
     "disabled": [],
     "failure_policy": "fail_open_flag",
-    "_failure_policy_options": "fail_open_flag (forward + FLAG) or fail_closed (BLOCK)"
+    "_failure_policy_options": "fail_open_flag (forward + FLAG) or fail_closed (BLOCK)",
+    "models": {
+      "anomaly": "isolation_forest",
+      "payload": "ngram",
+      "behavior": "lstm"
+    },
+    "_models_note": "payload: ngram (baseline) or cnn (needs models/payload_cnn.npz); behavior: lstm (models/behavior_lstm.npz) or markov (baseline)"
   },
   "fast_filter": {
     "rules_file": "rules/fast_filter.json",

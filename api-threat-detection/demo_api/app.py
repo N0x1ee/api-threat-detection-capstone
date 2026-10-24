@@ -38,9 +38,14 @@ def create_demo_api(log_path=ACCESS_LOG):
     def body():
         return request.get_json(silent=True) or {}
 
+    DEMO_ACCOUNTS = {"alice": "demo-pass-1", "bob": "demo-pass-2", "carol": "demo-pass-3", "dave": "demo-pass-4"}
+
     @app.post("/login")
     def login():
-        user = str(body().get("username", ""))[:40]
+        b = body()
+        user = str(b.get("username", ""))[:40]
+        if DEMO_ACCOUNTS.get(user) != b.get("password"):      # wrong credentials -> 401 (fake accounts only)
+            return jsonify(ok=False, error="invalid credentials"), 401
         return jsonify(ok=True, user=user, token="demo-token")
 
     @app.post("/logout")

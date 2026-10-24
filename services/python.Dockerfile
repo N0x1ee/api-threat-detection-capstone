@@ -9,6 +9,7 @@ COPY api-threat-detection/app ./api-threat-detection/app
 COPY api-threat-detection/rules ./api-threat-detection/rules
 COPY api-threat-detection/demo_api ./api-threat-detection/demo_api
 COPY api-threat-detection/config.json ./api-threat-detection/config.json
+COPY api-threat-detection/weights ./api-threat-detection/weights
 COPY services/common ./services/common
 COPY services/fastfilter ./services/fastfilter
 COPY services/agents ./services/agents

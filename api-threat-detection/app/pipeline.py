@@ -24,15 +24,20 @@ class SessionStore:
     def __init__(self, max_users=5000):
         self.data, self.max_users, self.lock = OrderedDict(), max_users, threading.Lock()
 
-    def add(self, key, ts, endpoint):
+    def add(self, key, ts, endpoint, method=None, auth=None):
         with self.lock:
             dq = self.data.pop(key, None) or deque(maxlen=60)
-            dq.append((ts, endpoint))
+            dq.append((ts, endpoint, method, auth))
             self.data[key] = dq
             if len(self.data) > self.max_users:
                 self.data.popitem(last=False)
-            rate = sum(1 for t, _ in dq if t >= ts - RATE_WINDOW)
-            return [e for _, e in dq], rate
+            rate = sum(1 for x in dq if x[0] >= ts - RATE_WINDOW)
+            return [x[1] for x in dq], rate
+
+    def events(self, key):
+        """Event dicts for the LSTM behaviour agent (status is not known in-process)."""
+        with self.lock:
+            return [{"e": e, "m": m, "s": None, "t": t, "a": a} for t, e, m, a in self.data.get(key, ())]
 
 
 DECISION_COLS = ["id", "ts", "ip", "user", "method", "path", "payload", "route", "score", "verdict",
@@ -179,7 +184,11 @@ class Pipeline:
         t0 = time.perf_counter()
         timings = {}                                       # FR-099: per-stage milliseconds
         t1, t2 = self.cfg["thresholds"]["allow_below"], self.cfg["thresholds"]["block_above"]
-        history, rate = self.sessions.add(req.get("user") or req.get("ip"), req["ts"], req["endpoint"])
+        skey = req.get("user") or req.get("ip")
+        auth = bool({k.lower(): v for k, v in (req.get("headers") or {}).items()}.get("authorization"))
+        history, rate = self.sessions.add(skey, req["ts"], req["endpoint"], req.get("method"), auth)
+        if getattr(self.behavior, "model_name", "") == "lstm":
+            history = self.sessions.events(skey)
         ts = time.perf_counter()
         suspicious, fast_reasons, rule_ids, cached = self.fast.check(req, rate)
         timings["fast_filter"] = round((time.perf_counter() - ts) * 1000, 3)

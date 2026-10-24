@@ -55,8 +55,8 @@ func (c *Config) Validate() error {
 	if !(0 <= t.AllowBelow && t.AllowBelow < t.BlockAbove && t.BlockAbove <= 1) {
 		return fmt.Errorf("thresholds: need 0 <= allow_below < block_above <= 1")
 	}
-	if m := c.Aggregation.Mode; m != "A" && m != "B" && m != "C" {
-		return fmt.Errorf("aggregation.mode must be A, B or C")
+	if m := c.Aggregation.Mode; m != "A" && m != "B" && m != "C" && m != "D" {
+		return fmt.Errorf("aggregation.mode must be A, B, C or D")
 	}
 	if c.Weights.Min <= 0 || c.Weights.Min > c.Weights.Max {
 		return fmt.Errorf("weights.min must be > 0 and <= weights.max")

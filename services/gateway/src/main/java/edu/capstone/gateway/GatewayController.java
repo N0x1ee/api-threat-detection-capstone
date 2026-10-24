@@ -97,7 +97,7 @@ public class GatewayController {
         ev.put("endpoint", chk.path("endpoint").asText(ev.get("path").asText()));
         if (!chk.path("refer").asBoolean(true)) {
             publishDecision(rid, "fast_filter", "ALLOW", ev, t0);
-            return forward(req, raw, rid);
+            return observed(who, rid, forward(req, raw, rid));
         }
 
         // 3. referred: publish to Kafka, 4. wait for the decision engine's verdict
@@ -122,8 +122,8 @@ public class GatewayController {
                 verdict = "FLAG";
             }
         }
-        if ("BLOCK".equals(verdict)) return bare(403, rid, "Forbidden");   // UI-005: no detail leaked
-        return forward(req, raw, rid);
+        if ("BLOCK".equals(verdict)) return observed(who, rid, bare(403, rid, "Forbidden"));   // UI-005
+        return observed(who, rid, forward(req, raw, rid));
     }
 
     private ObjectNode requestEvent(HttpServletRequest req, byte[] raw, String rid, Identity who) {
@@ -209,6 +209,24 @@ public class GatewayController {
     private static ResponseEntity<byte[]> bare(int status, String rid, String text) {
         return ResponseEntity.status(status).header("X-Request-ID", rid).header("Content-Type", "text/plain")
                 .body(text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Tells the fast filter the response status (fire and forget) so the behaviour agent sees 4xx bursts. */
+    private ResponseEntity<byte[]> observed(Identity who, String rid, ResponseEntity<byte[]> resp) {
+        try {
+            ObjectNode ob = json.createObjectNode();
+            ob.put("identity", who.id());
+            ob.put("request_id", rid);
+            ob.put("status", resp.getStatusCode().value());
+            HttpRequest r = HttpRequest.newBuilder(URI.create(fastFilterUrl + "/observe"))
+                    .timeout(Duration.ofMillis(500))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(ob.toString())).build();
+            http.sendAsync(r, HttpResponse.BodyHandlers.discarding());
+        } catch (Exception e) {
+            log.debug("observe failed: {}", e.toString());
+        }
+        return resp;
     }
 
     private JsonNode arrayOrEmpty(JsonNode n, String field) {

@@ -38,13 +38,23 @@ def clean(o):
 
 
 def load_agent(name):
+    """Primary or baseline model per config.json agents.models (AI-071, AI-072)."""
+    from app.config import load_config
+    choice = load_config(os.environ.get("CONFIG")).get("agents", {}).get("models", {}).get(name)
+    weights = os.path.join(os.path.abspath(ROOT), "weights")
+    if name == "behavior" and choice == "lstm":
+        from app.behavior_lstm import LSTMBehaviorAgent
+        return LSTMBehaviorAgent(os.path.join(weights, "behavior_lstm.npz"))
+    if name == "payload" and choice == "cnn":
+        from app.cnn_payload import CNNPayloadAgent
+        return CNNPayloadAgent(os.path.join(weights, "payload_cnn.npz"))
     from app.training import load_or_train
     return load_or_train()[INDEX[name]]
 
 
 def model_tag(name, agent):
     v = getattr(agent, "feature_version", None)
-    return f"{type(agent).__name__}" + (f"@v{v}" if v else "")
+    return getattr(agent, "model_name", None) or (f"{type(agent).__name__}" + (f"@v{v}" if v else ""))
 
 
 def handle(name, agent, ev):
@@ -56,6 +66,8 @@ def handle(name, agent, ev):
         if name == "behavior":
             history = list(ev.get("history") or [])
             rate = (ev.get("fast_filter") or {}).get("rate", len(history))
+            if getattr(agent, "model_name", "") != "lstm":      # Markov baseline wants endpoint strings
+                history = [h.get("e", "") if isinstance(h, dict) else h for h in history]
             res = agent.analyze(history, rate)
         else:
             req = {k: ev.get(k) for k in ("method", "path", "query", "body", "headers", "ip")}
@@ -75,6 +87,7 @@ def main():
     if name not in INDEX:
         sys.exit(f"AGENT must be one of {sorted(INDEX)}")
     agent = load_agent(name)
+    handle(name, agent, {"request_id": "warmup", "method": "GET", "path": "/", "headers": {}, "history": []})
     bus = make_bus()
     stop = threading.Event()
 

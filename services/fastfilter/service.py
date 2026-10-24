@@ -3,6 +3,7 @@
 Reuses the rules engine from api-threat-detection/app/fastfilter.py; rate counters, endpoint
 history and the clean-payload cache live in Redis so every gateway instance shares them.
 """
+import json
 import os
 import sys
 import time
@@ -68,17 +69,50 @@ def create_app(r=None, cfg=None):
         p.zremrangebyscore(f"ff:rate:{ident}", 0, now - window)
         p.zcard(f"ff:rate:{ident}")
         p.expire(f"ff:rate:{ident}", int(window) + 5)
-        p.rpush(f"ff:hist:{ident}", req["endpoint"])
+        hdrs = {k.lower(): v for k, v in (ev.get("headers") or {}).items()}
+        auth = bool(hdrs.get("authorization"))          # logged-in user (the gateway redacts the value)
+        event = {"e": req["endpoint"], "m": req["method"], "s": None, "t": round(now, 3), "a": auth,
+                 "id": ev.get("request_id", "")}
+        p.rpush(f"ff:hist:{ident}", json.dumps(event))
         p.ltrim(f"ff:hist:{ident}", -HIST_KEEP, -1)
         p.expire(f"ff:hist:{ident}", 3600)
         p.lrange(f"ff:hist:{ident}", -HIST_SEND, -1)
         out = p.execute()
-        rate, history = out[2], out[-1]
+        rate = out[2]
+        history = []
+        for h in out[-1]:
+            try:
+                e = json.loads(h)
+            except ValueError:                       # older entries were bare endpoint strings
+                e = {"e": h}
+            e.pop("id", None)
+            history.append(e)
         refer, reasons, rule_ids, cached = ff.check(req, rate, now)
         r.hincrby("ff:stats", "referred" if refer else "cleared", 1)
         return jsonify(refer=refer, reasons=reasons, rule_ids=rule_ids, rules_version=ff.version, cached=cached,
                        rate=rate, history=history, endpoint=req["endpoint"],
                        latency_ms=round((time.perf_counter() - t0) * 1000, 3))
+
+    @app.post("/observe")
+    def observe():
+        """Gateway reports the response status of a request, so the behaviour agent sees 4xx bursts."""
+        ob = request.get_json(silent=True) or {}
+        ident, rid, status = ob.get("identity"), ob.get("request_id"), ob.get("status")
+        if not ident or not rid:
+            return jsonify(error="identity and request_id required"), 400
+        key = f"ff:hist:{ident}"
+        items = r.lrange(key, -10, -1)
+        n = r.llen(key)
+        for i in range(len(items) - 1, -1, -1):
+            try:
+                e = json.loads(items[i])
+            except ValueError:
+                continue
+            if e.get("id") == rid:
+                e["s"] = status
+                r.lset(key, n - len(items) + i, json.dumps(e))
+                return jsonify(updated=True)
+        return jsonify(updated=False)
 
     @app.get("/stats")
     def stats():

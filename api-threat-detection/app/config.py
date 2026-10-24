@@ -17,7 +17,8 @@ DEFAULTS = {
     "weights": {"initial": 1.0, "min": 0.1, "max": 2.0, "alpha": 0.3, "max_delta": 0.2,
                 "update_every": 1000, "window": 1000, "min_positives": 30,
                 "use_analyst_labels": True, "frozen": False},
-    "agents": {"timeout_ms": 150, "disabled": [], "failure_policy": "fail_open_flag"},
+    "agents": {"timeout_ms": 150, "disabled": [], "failure_policy": "fail_open_flag",
+               "models": {"anomaly": "isolation_forest", "payload": "ngram", "behavior": "lstm"}},
     "fast_filter": {"rules_file": "rules/fast_filter.json", "rate_window_s": 10, "rate_threshold": 8,
                     "max_payload_chars": 400, "cache_ttl_s": 60},
     "audit": {"async_writes": True, "queue_size": 10000},
@@ -64,8 +65,8 @@ def validate(cfg):
     t2 = _num(cfg, "thresholds", "block_above", 0, 1, lo_open=True, hi_open=True)
     if not t1 < t2:
         raise ConfigError(f"thresholds.allow_below ({t1}) must be smaller than thresholds.block_above ({t2})")
-    if cfg["aggregation"]["mode"] not in ("A", "B", "C"):
-        raise ConfigError(f"aggregation.mode must be A, B or C, got {cfg['aggregation']['mode']!r}")
+    if cfg["aggregation"]["mode"] not in ("A", "B", "C", "D"):
+        raise ConfigError(f"aggregation.mode must be A, B, C or D, got {cfg['aggregation']['mode']!r}")
     _num(cfg, "aggregation", "vote_threshold", 0, 1)
     _num(cfg, "aggregation", "epsilon", 0, 1, lo_open=True)
     wmin = _num(cfg, "weights", "min", 0, lo_open=True)
@@ -80,6 +81,11 @@ def validate(cfg):
     bad = [a for a in cfg["agents"]["disabled"] if a not in AGENT_NAMES]
     if bad:
         raise ConfigError(f"agents.disabled has unknown agent(s) {bad}; valid: {list(AGENT_NAMES)}")
+    models = cfg["agents"].get("models", {})
+    allowed = {"anomaly": ("isolation_forest",), "payload": ("ngram", "cnn"), "behavior": ("markov", "lstm")}
+    for agent, model in models.items():
+        if agent not in allowed or model not in allowed[agent]:
+            raise ConfigError(f"agents.models.{agent} = {model!r} is not valid; options: {allowed.get(agent)}")
     if cfg["agents"]["failure_policy"] not in ("fail_open_flag", "fail_closed"):
         raise ConfigError("agents.failure_policy must be fail_open_flag or fail_closed")
     _num(cfg, "fast_filter", "rate_window_s", 0, lo_open=True)

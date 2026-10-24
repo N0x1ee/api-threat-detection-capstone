@@ -41,11 +41,18 @@ class TestAggregation(unittest.TestCase):
         self.assertAlmostEqual(aggregate(res, EQUAL, "B").score, (0.2 + 0.9 + 0.6) / 3)
         self.assertAlmostEqual(aggregate(res, EQUAL, "C").score, 2 / 3)
 
+    def test_mode_d_noisy_or(self):
+        res = {"payload": R(0.95, 0.9), "behavior": R(0.02, 1.0), "anomaly": R(0.2, 0.1)}
+        d = aggregate(res, EQUAL, "D").score
+        self.assertAlmostEqual(d, 1 - (1 - 0.95 * 0.9) * (1 - 0.02) * (1 - 0.02))
+        self.assertEqual(verdict_for(d), "BLOCK")
+        self.assertLess(aggregate(res, EQUAL, "A").score, 0.7)    # the dilution mode D fixes
+
     def test_range_always_0_1(self):                           # AI-039 / AC-008
         for s in (0.0, 1.0):
             for c in (0.0001, 1.0):
                 res = {n: R(s, c) for n in AGENT_NAMES}
-                for m in "ABC":
+                for m in "ABCD":
                     v = aggregate(res, EQUAL, m).score
                     self.assertTrue(0.0 <= v <= 1.0)
 

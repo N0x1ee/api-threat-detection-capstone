@@ -89,6 +89,17 @@ func Aggregate(results map[string]AgentResult, weights map[string]float64, mode 
 		agg.Denominator = n
 		s := agg.Numerator / n
 		agg.Score = &s
+	case "D": // confidence-weighted noisy-OR: agents can only raise the threat
+		rest := 1.0
+		for _, k := range names {
+			r := results[k]
+			t := math.Min(1, weightOf(weights, k)**r.Confidence**r.Score)
+			agg.Contributions[k] = t
+			rest *= 1 - t
+		}
+		agg.Numerator, agg.Denominator = 1-rest, 1
+		s := 1 - rest
+		agg.Score = &s
 	case "C":
 		for _, k := range names {
 			if *results[k].Score > voteThreshold {

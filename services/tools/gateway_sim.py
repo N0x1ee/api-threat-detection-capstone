@@ -39,9 +39,10 @@ def handle(method, path, query="", body="", headers=None, ip="10.0.0.5", identit
     bus.publish("requests.suspicious", rid, ev)
     got = r.blpop(f"verdict:{rid}", timeout=VERDICT_TIMEOUT_S)
     ms = (time.perf_counter() - t0) * 1000
-    if not got:
-        return "FLAG", "timeout (fail_open_flag)", ms
-    return json.loads(got[1])["verdict"], "ai", ms
+    verdict = json.loads(got[1])["verdict"] if got else "FLAG"
+    requests.post(f"{FF}/observe", json={"identity": ev["identity"], "request_id": rid,
+                                         "status": 403 if verdict == "BLOCK" else 200}, timeout=2)
+    return verdict, ("ai" if got else "timeout (fail_open_flag)"), ms
 
 
 if __name__ == "__main__":

@@ -225,3 +225,17 @@ func TestConfigValidation(t *testing.T) {
 		t.Fatalf("repo config rejected: %v", err)
 	}
 }
+
+func TestModeDNoisyOr(t *testing.T) {
+	res := map[string]AgentResult{"payload": R(0.95, 0.9), "behavior": R(0.02, 1.0), "anomaly": R(0.2, 0.1)}
+	d, _ := Aggregate(res, equal, "D", 0.5, 1e-6)
+	want := 1 - (1-0.95*0.9)*(1-0.02*1.0)*(1-0.2*0.1)
+	near(t, *d.Score, want)
+	if VerdictFor(*d.Score, 0.3, 0.7) != "BLOCK" {
+		t.Fatal("a confident benign agent must not cancel a confident detection in mode D")
+	}
+	a, _ := Aggregate(res, equal, "A", 0.5, 1e-6)
+	if *a.Score >= 0.7 {
+		t.Fatal("mode A is expected to dilute here (documents the reason for mode D)")
+	}
+}

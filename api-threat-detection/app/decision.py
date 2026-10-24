@@ -5,6 +5,7 @@ SRS v1.1 Sections 4.5, 5.7, 5.8 and 6. Every number comes from config.json.
     Mode A (default)  T = sum(w*c*s) / sum(w*c)       confidence-weighted
     Mode B            T = mean(s)                       equal-weight average
     Mode C            T = share of agents with s > 0.5  simple majority vote
+    Mode D            T = 1 - prod(1 - min(1, w*c*s))   confidence-weighted noisy-OR
 """
 from __future__ import annotations
 
@@ -17,7 +18,8 @@ from dataclasses import dataclass, field
 AGENT_NAMES = ["anomaly", "payload", "behavior"]
 AGENT_TITLES = {"anomaly": "Anomaly agent", "payload": "Payload agent", "behavior": "Behavior agent"}
 ALLOW_BELOW, BLOCK_ABOVE = 0.3, 0.7          # defaults only; the live values come from config.json
-MODE_NAMES = {"A": "confidence-weighted", "B": "equal-weight average", "C": "majority vote"}
+MODE_NAMES = {"A": "confidence-weighted", "B": "equal-weight average", "C": "majority vote",
+              "D": "confidence-weighted noisy-OR"}
 
 
 # ------------------------------------------------------------------ aggregation
@@ -45,6 +47,15 @@ def aggregate(results, weights, mode="A", vote_threshold=0.5, epsilon=1e-6):
         terms = {n: results[n].score / len(names) for n in names}
         num, den = sum(results[n].score for n in names), float(len(names))
         score = num / den
+    elif mode == "D":
+        # confidence-weighted noisy-OR: each agent can only raise the threat. A specialist that is
+        # confidently "benign" about its own domain no longer cancels another specialist's detection.
+        terms = {n: min(1.0, weights.get(n, 1.0) * results[n].confidence * results[n].score) for n in names}
+        rest = 1.0
+        for t in terms.values():
+            rest *= (1.0 - t)
+        num, den = 1.0 - rest, 1.0
+        score = num
     elif mode == "C":
         terms = {n: (1.0 / len(names)) if results[n].score > vote_threshold else 0.0 for n in names}
         num, den = float(sum(results[n].score > vote_threshold for n in names)), float(len(names))
