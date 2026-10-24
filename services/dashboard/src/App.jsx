@@ -11,6 +11,9 @@ async function api(path, opts = {}) {
   return body
 }
 
+const MODEL_NAMES = { lstm: 'LSTM (trained)', char_cnn: 'Char-CNN (trained)', PayloadAgent: 'n-gram baseline',
+  BehaviorAgent: 'Markov baseline', 'AnomalyAgent@v3': 'Isolation Forest' }
+const MODE_NAMES = { A: 'confidence-weighted mean', B: 'equal-weight mean', C: 'majority vote', D: 'confidence-weighted noisy-OR' }
 const fmt = (s) => (s === null || s === undefined ? '–' : Number(s).toFixed(2))
 const time = (ts) => new Date(ts * 1000).toLocaleTimeString()
 
@@ -96,13 +99,15 @@ function Detail({ rid, onClose }) {
       <button className="close" onClick={onClose}>×</button>
       <h2 className={`v-${d.verdict}`}>{d.verdict} · score {fmt(d.score)}</h2>
       <p>{ex.summary}</p>
-      <p className="muted">{d.method} {d.path}{d.query ? `?${d.query}` : ''} · {d.ip} · {time(d.ts)} · route {d.route}</p>
+      <p className="muted">{d.method} {d.path}{d.query ? `?${d.query}` : ''} · {d.ip} · {time(d.ts)} · route {d.route}
+        {d.mode ? ` · aggregation mode ${d.mode} (${MODE_NAMES[d.mode] || ''})` : ''}</p>
       {ex.evidence?.length > 0 && <ul>{ex.evidence.map((e, i) => <li key={i}>{e}</li>)}</ul>}
       {d.agents && Object.keys(d.agents).length > 0 && (
         <table>
-          <thead><tr><th>Agent</th><th>Score</th><th>Confidence</th><th>Weight</th></tr></thead>
+          <thead><tr><th>Agent</th><th>Model</th><th>Score</th><th>Confidence</th><th>Weight</th></tr></thead>
           <tbody>{Object.entries(d.agents).map(([n, a]) => (
-            <tr key={n}><td>{n}</td><td>{fmt(a.score)}</td><td>{fmt(a.confidence)}</td><td>{fmt(a.weight)}</td></tr>
+            <tr key={n}><td>{n}</td><td className="muted">{MODEL_NAMES[a.model] || a.model || '–'}</td>
+              <td>{fmt(a.score)}</td><td>{fmt(a.confidence)}</td><td>{fmt(a.weight)}</td></tr>
           ))}</tbody>
         </table>
       )}

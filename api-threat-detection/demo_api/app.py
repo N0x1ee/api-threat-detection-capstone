@@ -44,7 +44,8 @@ def create_demo_api(log_path=ACCESS_LOG):
     def login():
         b = body()
         user = str(b.get("username", ""))[:40]
-        if DEMO_ACCOUNTS.get(user) != b.get("password"):      # wrong credentials -> 401 (fake accounts only)
+        pw = b.get("password")
+        if not user or not pw or DEMO_ACCOUNTS.get(user) != pw:   # wrong or missing credentials -> 401
             return jsonify(ok=False, error="invalid credentials"), 401
         return jsonify(ok=True, user=user, token="demo-token")
 
