@@ -11,7 +11,7 @@
 import hmac
 import re
 import secrets
-import sqlite3
+from .dbcompat import connect
 import threading
 import time
 
@@ -35,7 +35,7 @@ class Auth:
              "max_failed_logins": 5, "lockout_minutes": 5, "min_password_length": 8}
         c.update(cfg or {})
         self.cfg = c
-        self.db = sqlite3.connect(db_path, check_same_thread=False)
+        self.db = connect(db_path)          # SQLite file or postgres:// URL
         self.lock = threading.Lock()
         self.sessions = {}            # token -> {"user", "role", "csrf", "created", "seen"}
         self.failures = {}            # (username, ip) -> [timestamps]

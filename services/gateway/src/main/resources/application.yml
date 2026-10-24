@@ -1,0 +1,28 @@
+server:
+  port: 8080
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: 1
+      properties:
+        linger.ms: 1
+gateway:
+  upstream: ${UPSTREAM_URL:http://localhost:8001}
+  fastfilter-url: ${FASTFILTER_URL:http://localhost:7001}
+  upstream-timeout-ms: 5000
+  verdict-timeout-ms: ${VERDICT_TIMEOUT_MS:400}   # how long to wait for the decision engine
+  agent-deadline-ms: 150                           # passed to the engine as deadline_ms
+  failure-policy: fail_open_flag                   # or fail_closed
+  max-inspect-bytes: 65536
+  trusted-proxy: false
+  rate-limit:
+    max-requests: 60
+    window-s: 10

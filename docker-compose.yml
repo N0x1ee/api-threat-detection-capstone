@@ -1,0 +1,129 @@
+# Full proposal stack (services/ARCHITECTURE.md).  From C:\capstone:
+#   docker compose up --build
+# Gateway (protected API through the detector): http://localhost:8080
+# Dashboard:                                    http://localhost:3000
+# Set ADMIN_USERNAME / ADMIN_PASSWORD in a .env file next to this one first.
+
+x-py: &py
+  build: { context: ., dockerfile: services/python.Dockerfile }
+  image: capstone-python
+  restart: unless-stopped
+  environment: &pyenv
+    BUS: kafka
+    KAFKA_BROKERS: kafka:9092
+    REDIS_URL: redis://redis:6379/0
+    DATABASE_URL: postgresql://capstone:capstone@postgres:5432/threats
+
+services:
+  kafka:
+    image: apache/kafka:3.8.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      retries: 20
+
+  kafka-init:            # create topics up front so consumers don't race auto-creation
+    image: apache/kafka:3.8.1
+    depends_on: { kafka: { condition: service_healthy } }
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - for t in requests.suspicious agent.results decisions labels weights.updates; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic $$t --partitions 3 --replication-factor 1;
+        done
+    restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: capstone, POSTGRES_PASSWORD: capstone, POSTGRES_DB: threats }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capstone -d threats"]
+      interval: 3s
+      retries: 20
+
+  demo-api:              # the protected API the gateway sits in front of
+    <<: *py
+    working_dir: /srv/api-threat-detection
+    command: ["python", "-c", "from demo_api.app import create_demo_api; create_demo_api('/tmp/access.log').run(host='0.0.0.0', port=8001)"]
+
+  fastfilter:
+    <<: *py
+    command: ["python", "fastfilter/service.py"]
+    depends_on: [redis]
+
+  agent-anomaly:
+    <<: *py
+    command: ["python", "agents/worker.py"]
+    environment: { <<: *pyenv, AGENT: anomaly }
+    depends_on: { kafka-init: { condition: service_completed_successfully } }
+
+  agent-payload:
+    <<: *py
+    command: ["python", "agents/worker.py"]
+    environment: { <<: *pyenv, AGENT: payload }
+    depends_on: { kafka-init: { condition: service_completed_successfully } }
+
+  agent-behavior:
+    <<: *py
+    command: ["python", "agents/worker.py"]
+    environment: { <<: *pyenv, AGENT: behavior }
+    depends_on: { kafka-init: { condition: service_completed_successfully } }
+
+  decision-engine:
+    build: services/decision-engine
+    restart: unless-stopped
+    environment:
+      BUS: kafka
+      KAFKA_BROKERS: kafka:9092
+      REDIS_ADDR: redis:6379
+      CONFIG: /config.json
+    volumes: [./api-threat-detection/config.json:/config.json:ro]
+    depends_on: { kafka-init: { condition: service_completed_successfully }, redis: { condition: service_started } }
+
+  xai:                   # XAI generator + dashboard API
+    <<: *py
+    command: ["python", "xai/service.py"]
+    environment:
+      <<: *pyenv
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka-init: { condition: service_completed_successfully }
+
+  gateway:
+    build: services/gateway
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      UPSTREAM_URL: http://demo-api:8001
+      FASTFILTER_URL: http://fastfilter:7001
+    ports: ["8080:8080"]
+    depends_on: [fastfilter, demo-api, decision-engine, agent-anomaly, agent-payload, agent-behavior]
+
+  dashboard:
+    build: services/dashboard
+    ports: ["3000:80"]
+    depends_on: [xai]
+
+volumes:
+  pgdata:
