@@ -1,7 +1,6 @@
 # Cyber Physical Systems & Security (CPSS) Group
 
-Title of Project:
-# Adaptive Multi-Agent & Explainable AI System for Real-Time API Threat Detection
+Title of Project: **Adaptive Multi-Agent & Explainable AI System for Real-Time API Threat Detection**
 
 👥 **Project Team:** MCA final-year capstone project.
 
