@@ -2,7 +2,8 @@
 
 👥 **Project Team:** MCA final-year capstone project.
 
-**Supervisor**: **Dr. Surjit Singh**, Department of Computer Science & Engineering, Thapar Institute of Engineering & Technology, Patiala, India  |
+**Supervisor**: 
+**Dr. Surjit Singh**, Department of Computer Science & Engineering, Thapar Institute of Engineering & Technology, Patiala, India  |
 Email: surjit.singh@thapar.edu  |
 
 | Member | Role |
