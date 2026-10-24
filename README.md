@@ -1,10 +1,8 @@
 # Adaptive Multi-Agent & Explainable AI System for Real-Time API Threat Detection
 
-👥 Project Team: MCA final-year capstone project.
-Thapar Institute of Engineering & Technology, Patiala, India  |
-Department of Computer Science and Engineering  |
+👥 **Project Team:** MCA final-year capstone project.
 
-Supervisor: Dr. Surjit Singh, Department of Computer Science & Engineering, Thapar Institute of Engineering & Technology, Patiala, India  |
+**Supervisor**: **Dr. Surjit Singh**, Department of Computer Science & Engineering, Thapar Institute of Engineering & Technology, Patiala, India  |
 Email: surjit.singh@thapar.edu  |
 
 | Member | Role |
