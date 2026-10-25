@@ -6,7 +6,7 @@ Title of Project: **Adaptive Multi-Agent & Explainable AI System for Real-Time A
 **Dr. Surjit Singh**, Department of Computer Science & Engineering, Thapar Institute of Engineering & Technology, Patiala, India  |
 Email: surjit.singh@thapar.edu  |
 
-👥 **Project Team:** MCA final-year capstone project.
+👥 **Project Team:** MCA final-year capstone project(2026).
 
 | Member | Role |
 |---|---|
