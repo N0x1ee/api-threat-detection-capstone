@@ -13,7 +13,7 @@ Email: surjit.singh@thapar.edu  |
 | NOxiee | AI / ML (payload agent, data pipeline), documentation lead |
 | Sehaj | AI / ML (behaviour and anomaly agents, evaluation) |
 | Navjot | Gateway, demo API, dashboard, authentication, deployment |
-| Shrey | Documentation, testing, cross-functional support |
+| Shreshtha | Documentation, testing, cross-functional support |
 
 ## What it is
 
